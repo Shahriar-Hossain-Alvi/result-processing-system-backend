@@ -8,13 +8,11 @@ from dotenv import load_dotenv
 
 # Load .env variables
 load_dotenv()
+sync_database_url = os.getenv("SYNC_DATABASE_URL")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-
-# Get DB URL from .env
-sync_database_url = os.getenv("SYNC_DATABASE_URL")
 
 # Override sqlalchemy.url dynamically
 if sync_database_url:

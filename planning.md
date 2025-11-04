@@ -1,8 +1,8 @@
 ## Tables
 1. students table = id, name, roll, registration, session, dept
-2. marks = id, student_id, subject_id, semester_id, marks, grade(GPA)
+2. results table = id, student_id, subject_id, semester_id, assignmet_mark, midterm_mark, final_mark, class_test_mark, total_mark grade(GPA)
 3. semester = id, name, number
-4. subject = id, name, code, semester_id, dept_id, credits
+4. subject = id, name, subject_code, semester_id, dept_id, credits
 5. Department = id, name
 
 ## Relationships
