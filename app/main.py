@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 import uvicorn
 
-from app.routes import department_routes, login, semester_routes, student_routes, user_routes
+from app.routes import department_routes, login, semester_routes, student_routes, subject_routes, user_routes
 
 app = FastAPI()
 
@@ -13,6 +13,7 @@ app.include_router(user_routes.router, prefix="/api")
 app.include_router(department_routes.router, prefix="/api")
 app.include_router(semester_routes.router, prefix="/api")
 app.include_router(student_routes.router, prefix="/api")
+app.include_router(subject_routes.router, prefix="/api")
 
 
 
