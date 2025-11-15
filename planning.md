@@ -1,14 +1,12 @@
 ## Tables
-1. users = id, username, email, hashed_password, is_active, role
-2. Department = id, dept_name
+1. users = id, username, email, hashed_password, is_active, role ✅
+2. Department = id, dept_name ✅
 3. semester = id, semester_name, semester_number
 4. students = id, name, registration, session, department_id, semester_id
 5. subject = id, subject_title, subject_code, semester_id, credits
 6. marks = id, student_id, subject_id, semester_id, assignmet_mark, midterm_mark, final_mark, class_test_mark, GPA, total_mark grade(GPA), user_id(teacher_id/Admin_id)
-7. subject_offerings = id, subject_id, department_id
+7. subject_offerings = id, subject_id, department_id, taught_by
 
-
-- same subject can be taught by different teachers in different departments, but each subject can only be taught by one teacher in one department, so I think I should store taught_by in subject_offerings table
 
 ## Relationships
 Department → Students                       | 1:N  | Each department has many students           

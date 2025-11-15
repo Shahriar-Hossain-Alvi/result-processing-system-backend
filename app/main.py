@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 import uvicorn
 
-from app.routes import department_routes, login, user_routes
+from app.routes import department_routes, login, semester_routes, user_routes
 
 app = FastAPI()
 
@@ -11,6 +11,7 @@ app = FastAPI()
 app.include_router(login.router, prefix="/api")
 app.include_router(user_routes.router, prefix="/api")
 app.include_router(department_routes.router, prefix="/api")
+app.include_router(semester_routes.router, prefix="/api")
 
 
 if __name__ == "__main__":

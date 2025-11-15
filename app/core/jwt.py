@@ -1,4 +1,5 @@
-from jose import jwt, JWTError
+from fastapi import HTTPException, status
+from jose import jwt, JWTError, ExpiredSignatureError
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 from app.core import settings
@@ -28,13 +29,17 @@ def decode_access_token(token: str):
     
     try:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]) # returns the payload (sub, iat, exp)
-    except JWTError:
-        return None
-    # except JWTError as e:
-    # raise HTTPException(
-    #     status_code=status.HTTP_401_UNAUTHORIZED,
-    #     detail=str(e),
-    #     headers={"www-Authentication": "Bearer"},
-    # )
+    except ExpiredSignatureError:
+        print("Expired token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired",
+            headers={"WWW-Authenticate": "Bearer"},
+            )
+    except JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"www-Authentication": "Bearer"},
+        )
 
    
