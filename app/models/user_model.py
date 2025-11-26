@@ -9,6 +9,7 @@ from sqlalchemy import Enum as sqlEnum
 
 
 class UserRole(enum.Enum):
+    # SUPER_ADMIN = 'super_admin'
     ADMIN = "admin"
     TEACHER = "teacher"
     STUDENT = "student"
