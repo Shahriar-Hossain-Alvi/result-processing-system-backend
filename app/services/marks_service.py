@@ -257,13 +257,29 @@ class MarksService:
     async def update_mark(
         db: AsyncSession,
         update_data: MarksUpdateSchema,
-        mark_id: int
+        mark_id: int,
+        current_user: UserOutSchema
     ):
         mark = await db.scalar(select(Mark).where(Mark.id == mark_id))
 
         if not mark:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Mark not found")
+
+
+        # check if the user is teacher then his id is in the taught_by_id in subject_offerings
+        if current_user.role.value == "teacher":
+            is_taught_by_this_teacher = await db.scalar(select(SubjectOfferings).where(
+                and_(
+                    SubjectOfferings.taught_by_id == current_user.id,
+                    SubjectOfferings.subject_id == mark.subject_id
+                )
+            ))
+
+            if not is_taught_by_this_teacher:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                    detail="You are not authorized to update mark for this subject.")      
+        
 
         if update_data.assignment_mark is not None:
             mark.assignment_mark = update_data.assignment_mark
