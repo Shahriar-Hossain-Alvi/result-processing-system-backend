@@ -1,58 +1,120 @@
-## AFTER CLONING RUN THIS PROJECT with the following command
-```
-docker compose build
-docker compose up
-or
-docker compose up -d
+# 🌟 Result Processing System
 
-```
-- Backend Starts at: http://localhost:8000
-- Swagger UI Starts at: http://localhost:8000/docs
-- DB persists at: postgres_data
+This project generates student results. It uses **FastAPI** for the backend, **Docker** for containerization, **PostgreSQL** for the database and **Alembic** for database migrations.  
+It fully supports development using Docker with hot reload.
 
-## Start Virtual Environmnt
-```
-# for windows
-venv\Scripts\activate
+---
 
-# for linux mint
-source venv/bin/activate
+## 🛠️ Prerequisites
+
+Before you begin, ensure you have the following installed on your system:
+
+- **Docker** or **Docker Desktop**
+- **Python 3.12** (this version is needed to suppress pylance and vscode warnings)
+- **Git**
+
+> Python is not used to run the backend — it's only needed so VSCode can provide IntelliSense and suppress import warnings.
+
+---
+
+# How to run this project
+
+## 1. Clone this repository
+```
+git clone [repository-url]
+cd [project-folder]
 ```
 
-## Run Application
+## 2. Create a `.env` 
+Copy `.env.example` -> `.env` and fill in the required values
+
+---
+
+## 3. Optional but Recommended: Create a Virtual Environment
+
+This is ONLY for editor (VSCode) dependencies — Docker does not use this venv. 
 ```
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+python -m venv venv     # for windows latest/default python
+py -3.12 -m venv venv   # version specific venv for windows
+python3 -m venv venv    # for linux
 ```
 
-## Alembic Commands for migrations
+- Activate:
+```
+venv\Scripts\activate       # for windows
+source venv/bin/activate    # for linux
+```
+
+- Install dependencies locally(for editor only):
+```
+pip install -r requirements.txt
+```
+
+---
+
+# 🐳 Run the Backend with Docker
+
+## 4. Development Mode (hot reload)
+
+Build and run the docker containers (make sure you are inside the backend project folder)
+```
+docker compose -f docker-compose.dev.yml up --build
+```
+
+## 5. Production Mode
+```
+docker compose -f docker-compose.prod.yml up --build -d
+```
+
+---
+
+## 6. 📂 Database Migrations (Alembic)
+
+### 1️⃣ When you modify the models:
+Generate migration (Locally in project folder):
 ```
 alembic revision --autogenerate -m "message"
+```
+
+### 2️⃣ Apply migrations locally:
+```
 alembic upgrade head
 ```
 
-## Create VENV
+### 3️⃣ Apply migrations inside Docker (dev container):
+> Note: Also use this the first time you run the dev mode container(**step 4**). Because the database will be empty.
 ```
-# for windows
-python -m venv venv
-
-# for linux mint
-python3 -m venv venv
+docker exec -it result_processing_system_backend_dev alembic upgrade head
 ```
 
-## Install, Save, Restore, Upgrade, Uninstall
-```
-# INSTALL
-pip install requests
+--- 
 
-# SAVE DEPENDENCIES
+## 7. 🛑 Stopping Docker
+```
+docker compose -f docker-compose.dev.yml down       # keeps DB data: 
+
+docker compose -f docker-compose.dev.yml down -v    # Deletes DB data: 
+
+ctrl+c # If docker is running in the terminal 
+```
+
+# Updating Dependencies
+
+Whenever you add/remove/upgrade Python dependencies:
+```
+pip install package-name
 pip freeze > requirements.txt
-
-# RESTORE LATER
-pip install -r requirements.txt
-
-# UPGRADE
-pip install --upgrade requests
-
-# UNINSTALL
-pip uninstall requests
 ```
+
+### ⚠️ Then **rebuild Docker image**:
+```
+docker compose -f docker-compose.dev.yml up --build
+```
+
+---
+
+
+# API Endpoints
+- Backend API: http://localhost:8000
+- Swagger UI(Docs): http://localhost:8000/docs
+- PostgreSQL data persists inside Docker volume: `postgres_data`

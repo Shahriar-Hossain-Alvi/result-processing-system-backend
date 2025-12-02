@@ -1,3 +1,4 @@
+# This Dockerfile is for production mode
 # 1. Base Image: Start from an official, lightweight Python image - it includes Python 3.12 and necessary OS components. Docker downloads the image only once
 FROM python:3.12-slim
 
