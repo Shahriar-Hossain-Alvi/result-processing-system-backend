@@ -45,5 +45,4 @@ async def login_user(
     return {
         "message": "Login successful",
         "access_token": access_token,
-        "token_type": "bearer"
     }  # this token will be stored in the browsers cookie and will be sent to backend for authentication with protected routes

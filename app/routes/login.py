@@ -9,14 +9,6 @@ from app.schemas.jwt_schema import TokenSchema
 
 router = APIRouter(prefix='/login', tags=['login'])
 
-# @router.post("/", response_model=TokenSchema)
-# async def login(
-#     form_data: OAuth2PasswordRequestForm = Depends(),
-#     db: AsyncSession = Depends(get_db_session)):
-#     try:
-#         return await login_user(db, form_data.username, form_data.password)
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
 
 
 # login route setup with httponly cookies

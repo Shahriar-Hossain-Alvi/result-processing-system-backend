@@ -1,12 +1,23 @@
 # this project is using python 3.12 interpreter
 from fastapi import FastAPI
 import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes import department_routes, login, mark_routes, semester_routes, student_routes, subject_offering_route, subject_routes, user_routes
 
 app = FastAPI()
 
-# TODO: add admin creation at startup
+origins = [
+    "http://localhost:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # add the routes
 app.include_router(login.router, prefix="/api")
