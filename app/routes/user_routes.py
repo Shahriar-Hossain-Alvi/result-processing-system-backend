@@ -13,6 +13,8 @@ router = APIRouter(
     tags=["users"]  # for swagger
 )
 
+# TODO: add token_injection in secured routes
+
 
 # user register
 @router.post("/register")
@@ -36,7 +38,7 @@ async def get_logged_in_user(
 
 
 # get all user
-@router.get("/", response_model=list[UserCreateSchema])
+@router.get("/", response_model=list[UserOutSchema])
 async def get_all_users(db: AsyncSession = Depends(get_db_session)):
     try:
         users = await UserService.get_users(db)

@@ -41,4 +41,4 @@ EXPOSE 8000
 # TODO: --reload flag for uvicorn? gunicorn?
 
 # IF using alembic migrations then use the following command
-CMD bash -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+CMD bash -c "alembic upgrade head && python app/db/seed_admin.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"

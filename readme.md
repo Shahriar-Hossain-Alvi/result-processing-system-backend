@@ -87,6 +87,15 @@ alembic upgrade head
 docker exec -it result_processing_system_backend_dev alembic upgrade head
 ```
 
+- Run seed_admin to create initial admin in database inside Docker
+```
+docker exec -it result_processing_system_backend_dev python app/db/seed_admin.py
+
+if the previous command fails then run the following:
+
+docker exec -it result_processing_system_backend_dev /bin/bash -c "PYTHONPATH=/app python app/db/seed_admin.py"
+```
+
 --- 
 
 ## 7. 🛑 Stopping Docker

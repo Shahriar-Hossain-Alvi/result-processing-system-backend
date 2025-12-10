@@ -14,6 +14,8 @@ router = APIRouter(
 )
 
 
+# TODO: add token_injection in secured routes
+
 # create marks
 @router.post("/",
              dependencies=[Depends(ensure_admin_or_teacher)],

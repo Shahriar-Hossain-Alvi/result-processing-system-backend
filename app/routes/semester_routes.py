@@ -13,6 +13,8 @@ router = APIRouter(
 )
 
 
+# TODO: add token_injection in secured routes
+
 # create semester
 @router.post("/")
 async def add__new_semester(

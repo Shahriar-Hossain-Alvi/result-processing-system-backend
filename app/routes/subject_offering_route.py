@@ -14,6 +14,8 @@ router = APIRouter(
     tags=["subject_offering"] # for swagger
 )
 
+# TODO: add token_injection in secured routes
+
 @router.post("/", dependencies=[Depends(ensure_admin)])
 async def create_new_subject_offering(
     sub_off_data: SubjectOfferingCreateSchema,

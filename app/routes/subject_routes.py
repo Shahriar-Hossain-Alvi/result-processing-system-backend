@@ -13,6 +13,7 @@ router = APIRouter(
     tags=["subjects"]
 )
 
+# TODO: add token_injection in secured routes
 
 # add new subject 
 @router.post("/")

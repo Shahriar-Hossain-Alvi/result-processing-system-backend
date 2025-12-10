@@ -14,6 +14,8 @@ router = APIRouter(
 )
 
 
+# TODO: add token_injection in secured routes
+
 # create department
 @router.post("/")
 async def create_new_department(

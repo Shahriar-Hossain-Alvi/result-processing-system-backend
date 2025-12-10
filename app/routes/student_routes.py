@@ -13,6 +13,8 @@ router = APIRouter(
 )
 
 
+# TODO: add token_injection in secured routes
+
 # create student record
 @router.post("/", dependencies=[Depends(ensure_admin)])
 async def create_student_record(
