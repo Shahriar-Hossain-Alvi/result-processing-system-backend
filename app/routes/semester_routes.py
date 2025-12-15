@@ -14,9 +14,6 @@ router = APIRouter(
     tags=["semesters"] # for swagger
 )
 
-
-# TODO: add token_injection in secured routes and permissions
-
 # create semester
 @router.post("/")
 async def add__new_semester(
