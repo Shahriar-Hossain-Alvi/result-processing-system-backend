@@ -14,7 +14,6 @@ async def inject_token(request: Request):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
     if access_token:
-        # TODO: what is the purpose of MutableHeaders? What is _headers?
         # if token exists, create a mutable header object
         mutable_headers = MutableHeaders(request._headers)
 
