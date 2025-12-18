@@ -24,6 +24,5 @@ Users → Students                            | 1:1  | Each student has one user
 1. Add Table to store teachers personal data eg: address, mobile number picture, which department they belong to
 2. add address, mobile number and picture fields in current students table
 Store users images
-3. Add a Publish/Unpublish/resolved/challenged field in Marks table -> teacher can update marks if he inputs the wrong marks when the result_status is not "challenged". টিচার শুধুমাত্র result_status যদি CHALLENGED এবং result_challenge_payment_status যদি False হয়, তবেই এডিট করতে পারবেন না।
 4. generated results pdfs(Frontend/Backend)
 5. Add group chat system that automatically adds the students and teachers of a department in a group to share resources (based on session)

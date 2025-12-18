@@ -4,8 +4,6 @@ from app.schemas.subject_schema import SubjectOutSchema
 from datetime import datetime
 from app.models import ResultStatus
 
-# TODO: Fix the schema according to new model and rebuild the docker image
-
 
 class MarksBaseSchema(BaseModel):
     assignment_mark: float = 0.0
