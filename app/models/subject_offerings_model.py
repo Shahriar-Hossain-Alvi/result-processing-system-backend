@@ -8,19 +8,25 @@ class SubjectOfferings(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
 
-    # relationship with user(teacher)
-    taught_by_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    # TODO: use teacher_id from teachers table
 
-    taught_by: Mapped["User"] = relationship(back_populates="subject_offerings") #type: ignore 
+    # relationship with user(teacher)
+    taught_by_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"))
+
+    taught_by: Mapped["User"] = relationship(
+        back_populates="subject_offerings")  # type: ignore
 
     # relationship with subject
-    subject_id: Mapped[int] = mapped_column(Integer, ForeignKey("subjects.id", ondelete="CASCADE"))
+    subject_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("subjects.id", ondelete="CASCADE"))
 
-    subject: Mapped["Subject"] = relationship(back_populates="subject_offerings") #type: ignore 
+    subject: Mapped["Subject"] = relationship(
+        back_populates="subject_offerings")  # type: ignore
 
-   
-   
     # relationship with department
-    department_id: Mapped[int] = mapped_column(Integer, ForeignKey("departments.id", ondelete="CASCADE"))
+    department_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("departments.id", ondelete="CASCADE"))
 
-    department: Mapped["Department"] = relationship(back_populates="subject_offerings") #type: ignore 
+    department: Mapped["Department"] = relationship(
+        back_populates="subject_offerings")  # type: ignore

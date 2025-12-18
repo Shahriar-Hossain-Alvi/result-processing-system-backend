@@ -18,7 +18,7 @@ class StudentService:
             db: AsyncSession,
             student_data: StudentCreateSchema
     ):
-        # check for existing user
+        # check for existance in user table
         user = await check_existence(User, db, student_data.user_id, "User")
 
         if not user.role.value == "student":
@@ -33,7 +33,6 @@ class StudentService:
 
         # check if department exist
         await check_existence(Department, db, student_data.department_id, "Department")
-
 
         # check if semester exist
         await check_existence(Semester, db, student_data.semester_id, "Semester")

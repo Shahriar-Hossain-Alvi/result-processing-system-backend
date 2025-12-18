@@ -72,6 +72,8 @@ class Mark(Base):
     student: Mapped["Student"] = relationship(
         back_populates="marks")  # type: ignore
 
+    # TODO: add a field to store the submitted_by id(admin/teachers id)
+
     # relationship with subject
     subject_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("subjects.id", ondelete="CASCADE"))
