@@ -28,6 +28,8 @@ async def create_new_department(
 
     try:
         return await DepartmentService.create_department(db, department_data)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -57,12 +59,14 @@ async def get_single_department(
 
     try:
         return await DepartmentService.get_department(db, id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 # update a department
-@router.patch("/{id}", response_model=DepartmentOutSchema)
+@router.patch("/{id}")
 async def update_single_department(
     id: int,
     department_data: DepartmentUpdateSchema,
@@ -73,7 +77,10 @@ async def update_single_department(
 
     try:
         return await DepartmentService.update_department(db, id, department_data)
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -87,5 +94,7 @@ async def delete_single_department(
 ):
     try:
         return await DepartmentService.delete_department(db, id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

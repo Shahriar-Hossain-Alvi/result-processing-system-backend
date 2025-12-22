@@ -19,9 +19,9 @@ app.add_middleware(
 )
 
 # add the routes
-app.include_router(teacher_routes.router, prefix="/api")
 app.include_router(login_logout.router, prefix="/api")
 app.include_router(user_routes.router, prefix="/api")
+app.include_router(teacher_routes.router, prefix="/api")
 app.include_router(student_routes.router, prefix="/api")
 app.include_router(department_routes.router, prefix="/api")
 app.include_router(semester_routes.router, prefix="/api")
