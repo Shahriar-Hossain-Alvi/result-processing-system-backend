@@ -17,7 +17,6 @@ class UserCreateSchema(UserBaseSchema):
 
 
 class UserUpdateSchemaByAdmin(BaseModel):
-    role: UserRole | None = None
     email: EmailStr | None = None
     username: EmailStr | None = None
     is_active: bool | None = None

@@ -56,7 +56,6 @@ async def get_all_users(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# get single user TODO: does this need permissions? if not, add dependency array
 @router.get("/{id}", response_model=AllUsersWithDetailsResponseSchema)
 async def get_single_user(
     id: int,
@@ -75,7 +74,7 @@ async def get_single_user(
 
 
 # update single user by admin
-@router.patch("/{id}", response_model=UserOutSchema)
+@router.patch("/{id}", response_model=dict[str, str])
 async def update_single_user_by_admin(
     id: int,
     user_data: UserUpdateSchemaByAdmin,

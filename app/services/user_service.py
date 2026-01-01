@@ -120,7 +120,9 @@ class UserService:
             await db.commit()
             await db.refresh(user)
 
-            return user
+            return {
+                "message": f"User updated successfully for username: {user.username}, role: {user.role.value}"
+            }
         except IntegrityError as e:
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
