@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models import Semester
@@ -24,6 +25,7 @@ class SemesterService:
         is_semester_exist = result.scalar_one_or_none()
 
         if (is_semester_exist):
+            logger.error("Semester already exist")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Semester already exist")
 
@@ -32,6 +34,7 @@ class SemesterService:
             db.add(new_semester)
             await db.commit()
             await db.refresh(new_semester)
+            logger.success("New Semester created successfully")
 
             return {
                 "message": f"New Semester created successfully. ID: {new_semester.id}"
@@ -43,6 +46,8 @@ class SemesterService:
 
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
+            logger.error(
+                "Integrity error while creating new Semester", readable_error)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
@@ -83,7 +88,7 @@ class SemesterService:
 
             await db.commit()
             await db.refresh(semester)
-
+            logger.success("Semester updated successfully")
             return {
                 "message": f"Semester updated successfully. ID: {semester.id}"
             }
@@ -94,6 +99,8 @@ class SemesterService:
 
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
+            logger.error(
+                "Integrity error while updating semester", readable_error)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
@@ -109,5 +116,5 @@ class SemesterService:
 
         await db.delete(semester)
         await db.commit()
-
+        logger.success("Semester deleted successfully")
         return {"message": f"{semester.semester_name} semester deleted successfully"}

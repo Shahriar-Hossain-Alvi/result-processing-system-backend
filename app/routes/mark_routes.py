@@ -19,7 +19,7 @@ router = APIRouter(
 @router.post("/", response_model=MarksResponseSchema)
 async def create_new_mark(
     mark_data: MarksCreateSchema,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -38,7 +38,7 @@ async def create_new_mark(
 async def update_a_mark(
     mark_id: int,
     mark_data: MarksUpdateSchema,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -57,7 +57,7 @@ async def update_a_mark(
 @router.delete("/{mark_id}", response_model=MarksResponseSchema)
 async def delete_a_mark(
     mark_id: int,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -78,7 +78,7 @@ async def get_all_subjects_marks_for_a_student(
     semester_id: int | None = Query(None),
     subject_id: int | None = Query(None),
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
 ):
     try:
@@ -100,7 +100,7 @@ async def get_department_wise_result(
     semester_id: int,
     department_id: int,
     session: str,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 

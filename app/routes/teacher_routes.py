@@ -16,7 +16,7 @@ router = APIRouter(prefix='/teachers', tags=['teachers'])
 @router.post("/")
 async def create_teacher_record(
     teacher_data: TeacherCreateSchema,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -33,7 +33,7 @@ async def create_teacher_record(
 #  get all teachers
 @router.get("/", response_model=list[TeacherResponseSchema])
 async def get_all_teachers(
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -66,7 +66,7 @@ async def get_all_faculty(
 async def get_single_teacher(
     id: int,
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
 ):
 
@@ -124,7 +124,7 @@ async def update_teacher_by_admin(
 @router.delete("/{id}")
 async def delete_a_teacher(
     id: int,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):

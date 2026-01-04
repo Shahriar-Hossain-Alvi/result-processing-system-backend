@@ -21,7 +21,7 @@ router = APIRouter(
 async def add__new_semester(
     semester_data: SemesterCreateSchema,
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
 
@@ -63,7 +63,7 @@ async def update_single_semester(
     id: int,
     semester_data: SemesterUpdateSchema,
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
     try:
@@ -79,7 +79,7 @@ async def update_single_semester(
 async def delete_single_semester(
     id: int,
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
 

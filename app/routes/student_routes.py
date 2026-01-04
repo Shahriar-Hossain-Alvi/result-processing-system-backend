@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.authenticated_user import get_current_user
 from app.services.student_service import StudentService
@@ -19,7 +20,7 @@ router = APIRouter(
 @router.post("/")
 async def create_student_record(
         student_data: StudentCreateSchema,
-        token_injection: None = Depends(inject_token),
+        # token_injection: None = Depends(inject_token),
         authorized_user: UserOutSchema = Depends(ensure_admin),
         db: AsyncSession = Depends(get_db_session),
 ):
@@ -29,7 +30,7 @@ async def create_student_record(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Unexpected Error: {e}")
+        logger.error("Unexpected Error: ", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -40,7 +41,7 @@ async def create_student_record(
     response_model=list[StudentResponseSchemaNested]
 )
 async def get_all_students(
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -50,7 +51,7 @@ async def get_all_students(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Unexpected Error: {e}")
+        logger.error("Unexpected Error: ", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -60,7 +61,7 @@ async def get_all_students(
 async def get_single_student(
     id: int,
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
 ):
     try:
@@ -68,7 +69,7 @@ async def get_single_student(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Unexpected Error: {e}")
+        logger.error("Unexpected Error: ", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -78,7 +79,7 @@ async def get_single_student(
 async def update_single_student(
     id: int,
     student_data: StudentUpdateSchema,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -91,7 +92,7 @@ async def update_single_student(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Unexpected Error: {e}")
+        logger.error("Unexpected Error: ", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -101,7 +102,7 @@ async def update_single_student(
 async def update_single_student_by_admin(
     id: int,
     student_data: StudentUpdateByAdminSchema,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -111,7 +112,7 @@ async def update_single_student_by_admin(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Unexpected Error: {e}")
+        logger.error("Unexpected Error: ", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -120,7 +121,7 @@ async def update_single_student_by_admin(
 @router.delete("/{id}")
 async def delete_single_student(
     id: int,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -130,6 +131,6 @@ async def delete_single_student(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Unexpected Error: {e}")
+        logger.error("Unexpected Error: ", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

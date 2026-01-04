@@ -19,7 +19,7 @@ router = APIRouter(
 async def register_user(
     user_data: UserCreateSchema,
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
 
@@ -34,7 +34,7 @@ async def register_user(
 # get logged in user
 @router.get("/me", response_model=UserOutSchema)
 async def get_logged_in_user(
-        token_injection: None = Depends(inject_token),
+        # token_injection: None = Depends(inject_token),
         current_user: UserOutSchema = Depends(get_current_user)):
     return current_user
 
@@ -44,7 +44,7 @@ async def get_logged_in_user(
 async def get_all_users(
     user_role: str | None = None,
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
     try:
@@ -59,7 +59,7 @@ async def get_all_users(
 @router.get("/{id}", response_model=AllUsersWithDetailsResponseSchema)
 async def get_single_user(
     id: int,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
     # current_user: UserOutSchema = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session)
@@ -78,7 +78,7 @@ async def get_single_user(
 async def update_single_user_by_admin(
     id: int,
     user_data: UserUpdateSchemaByAdmin,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
     # current_user: UserOutSchema = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
@@ -98,7 +98,7 @@ async def update_single_user_by_self(
     id: int,
     user_data: UserUpdateSchemaByUser,
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
 ):
     try:
@@ -114,7 +114,7 @@ async def update_single_user_by_self(
 @router.delete("/{id}")
 async def delete_a_user(
     id: int,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):

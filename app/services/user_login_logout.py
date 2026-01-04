@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status, Response
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import verify_password, create_access_token
@@ -41,6 +42,7 @@ async def login_user(
         expires=datetime.now(
             timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
+    logger.success("Login successful")
 
     return {
         "message": "Login successful",
@@ -54,6 +56,6 @@ async def logout_user(response: Response):
         httponly=True,
         samesite="lax"
     )
-    print("Cookie deleted")
+    logger.success("Cookie deleted")
 
     return {"message": "Logout successful"}

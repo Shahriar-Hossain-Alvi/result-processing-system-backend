@@ -19,7 +19,7 @@ router = APIRouter(
 @router.post("/")
 async def create_new_subject_offering(
     sub_off_data: SubjectOfferingCreateSchema,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -37,7 +37,7 @@ async def create_new_subject_offering(
 async def get_offered_subjects_for_marking(
     semester_id: int,
     department_id: int,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -53,7 +53,7 @@ async def get_offered_subjects_for_marking(
 @router.get("/{subject_offering_id}", response_model=SubjectOfferingResponseSchema)
 async def get_single_subject_offering(
     subject_offering_id: int,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -68,7 +68,7 @@ async def get_single_subject_offering(
 
 @router.get("/", response_model=list[SubjectOfferingResponseSchema])
 async def get_all_subject_offerings(
-        token_injection: None = Depends(inject_token),
+        # token_injection: None = Depends(inject_token),
         authorized_user: UserOutSchema = Depends(ensure_admin),
         db: AsyncSession = Depends(get_db_session)
 ):
@@ -85,7 +85,7 @@ async def get_all_subject_offerings(
 async def update_a_subject_offering(
     subject_offering_id: int,
     update_data: SubjectOfferingUpdateSchema,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session)
 ):
@@ -101,7 +101,7 @@ async def update_a_subject_offering(
 @router.delete("/{subject_offering_id}")
 async def delete_a_subject_offering(
     subject_offering_id: int,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session)
 ):

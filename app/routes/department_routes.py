@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from loguru import logger
 from app.core.authenticated_user import get_current_user
 from app.permissions.role_checks import ensure_admin
 from app.services.department_service import DepartmentService
@@ -22,7 +23,7 @@ router = APIRouter(
 async def create_new_department(
     department_data: DepartmentCreateSchema,
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
 
@@ -37,7 +38,7 @@ async def create_new_department(
 # get all departments
 @router.get("/", response_model=list[DepartmentOutSchema])
 async def get_all_departments(
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -55,7 +56,7 @@ async def get_all_departments(
 async def get_single_department(
     id: int,
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user)
 ):
 
@@ -73,7 +74,7 @@ async def update_single_department(
     id: int,
     department_data: DepartmentUpdateSchema,
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
 
@@ -82,7 +83,7 @@ async def update_single_department(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error("Error occurred while updating department:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -91,7 +92,7 @@ async def update_single_department(
 async def delete_single_department(
     id: int,
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
     try:

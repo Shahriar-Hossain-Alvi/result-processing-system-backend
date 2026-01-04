@@ -1,8 +1,13 @@
 # this project is using python 3.12 interpreter
 from fastapi import FastAPI
 import uvicorn
+from app.core.logging_config import setup_logging
 from fastapi.middleware.cors import CORSMiddleware
+from app.middleware.inject_token import TokenInjectionFromCookieToHeaderMiddleware
 from app.routes import department_routes, login_logout, mark_routes, semester_routes, student_routes, subject_offering_route, subject_routes, user_routes, teacher_routes
+
+# setup logging
+setup_logging()
 
 app = FastAPI()
 
@@ -17,6 +22,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(TokenInjectionFromCookieToHeaderMiddleware)
 
 # add the routes
 app.include_router(login_logout.router, prefix="/api")

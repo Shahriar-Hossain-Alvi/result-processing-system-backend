@@ -18,7 +18,7 @@ router = APIRouter(
 @router.post("/")
 async def create_new_subject(
     subject_data: SubjectCreateSchema,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -34,7 +34,7 @@ async def create_new_subject(
 # get all subjects
 @router.get("/", response_model=list[SubjectOutSchema])
 async def get_all_subjects(
-        token_injection: None = Depends(inject_token),
+        # token_injection: None = Depends(inject_token),
         current_user: UserOutSchema = Depends(get_current_user),
         db: AsyncSession = Depends(get_db_session)
 ):
@@ -51,7 +51,7 @@ async def get_all_subjects(
 @router.get("/{id}", response_model=SubjectOutSchema)
 async def get_single_subject(
         id: int,
-        token_injection: None = Depends(inject_token),
+        # token_injection: None = Depends(inject_token),
         current_user: UserOutSchema = Depends(get_current_user),
         db: AsyncSession = Depends(get_db_session)):
     try:
@@ -67,7 +67,7 @@ async def get_single_subject(
 @router.get("/subject/{code}", response_model=SubjectOutSchema)
 async def get_single_subject_by_code(
     subject_code: str,
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session)
 ):
@@ -86,7 +86,7 @@ async def get_single_subject_by_code(
 async def delete_single_subject(
     id: int,
     db: AsyncSession = Depends(get_db_session),
-    token_injection: None = Depends(inject_token),
+    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin)
 ):
 

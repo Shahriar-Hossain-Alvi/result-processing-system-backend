@@ -13,6 +13,11 @@ services:
       - ./:/app
     depends_on:
       - db
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - FORCE_COLOR=1  # ডকারকে কালার দেখাতে বাধ্য করবে
+      - TERM=xterm-256color # টার্মিনাল টাইপ সেট করা
 
   db:
     image: postgres:16
