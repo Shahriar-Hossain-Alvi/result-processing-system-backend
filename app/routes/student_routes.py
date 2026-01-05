@@ -98,7 +98,7 @@ async def update_single_student(
 
 
 # update a student by admin
-@router.patch("/updateStudenByAdmin/{id}", response_model=StudentOutSchema)
+@router.patch("/updateByAdmin/{id}")
 async def update_single_student_by_admin(
     id: int,
     student_data: StudentUpdateByAdminSchema,

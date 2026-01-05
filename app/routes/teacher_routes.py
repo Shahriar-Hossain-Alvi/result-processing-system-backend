@@ -102,11 +102,11 @@ async def update_teacher(
 
 
 # update teacher data by admin
-@router.patch("/updateByAdmin/{id}", response_model=TeacherResponseSchema)
+@router.patch("/updateByAdmin/{id}")
 async def update_teacher_by_admin(
         id: int,
         teacher_data: TeacherUpdateByAdminSchema,
-        inject_token: None = Depends(inject_token),
+        # inject_token: None = Depends(inject_token),
         authorized_user: UserOutSchema = Depends(ensure_admin),
         db: AsyncSession = Depends(get_db_session)):
 

@@ -40,6 +40,8 @@ class SemesterService:
                 "message": f"New Semester created successfully. ID: {new_semester.id}"
             }
         except IntegrityError as e:
+            logger.error(f"Integrity error while creating new Semester: {e}")
+
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
@@ -47,7 +49,7 @@ class SemesterService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
             logger.error(
-                "Integrity error while creating new Semester", readable_error)
+                f"Integrity error while creating new Semester: {readable_error}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
@@ -93,6 +95,7 @@ class SemesterService:
                 "message": f"Semester updated successfully. ID: {semester.id}"
             }
         except IntegrityError as e:
+            logger.error(f"Integrity error while updating semester: {e}")
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
@@ -100,7 +103,7 @@ class SemesterService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
             logger.error(
-                "Integrity error while updating semester", readable_error)
+                f"Integrity error while updating semester: {readable_error}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 

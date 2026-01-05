@@ -6,11 +6,9 @@ import enum
 from sqlalchemy import Enum as sqlEnum
 from app.models.timestamp import TimestampMixin
 
-# For creating an admin account only
-
 
 class UserRole(enum.Enum):
-    # SUPER_ADMIN = 'super_admin'
+    SUPER_ADMIN = 'super_admin'
     ADMIN = "admin"
     TEACHER = "teacher"
     STUDENT = "student"
@@ -33,6 +31,10 @@ class User(Base, TimestampMixin):
         String(100), nullable=False, unique=True)
 
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    mobile_number: Mapped[str] = mapped_column(
+        String(11), nullable=True, default=None, unique=True
+    )
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 

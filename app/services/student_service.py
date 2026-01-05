@@ -1,3 +1,4 @@
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.integrity_error_parser import parse_integrity_error
@@ -62,20 +63,22 @@ class StudentService:
             db.add(new_student)
             await db.commit()
             await db.refresh(new_student)
+            logger.success("New student created successfully")
 
             return {
                 "message": f"Student created successfully. Student ID: {new_student.id}, User ID: {new_user.id}"
             }
         except IntegrityError as e:
+            logger.error(f"Integrity error while creating student: {e}")
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
 
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
+            logger.error(readable_error)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     @staticmethod
     async def get_students(
@@ -116,17 +119,31 @@ class StudentService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
 
-        updated_student_data = student_update_data.model_dump(
-            exclude_unset=True)  # convert to dictionary
+        try:
+            updated_student_data = student_update_data.model_dump(
+                exclude_unset=True)  # convert to dictionary
 
-        for key, value in updated_student_data.items():
-            # apply the updated data in the student object(from DB)
-            setattr(student, key, value)
+            for key, value in updated_student_data.items():
+                # apply the updated data in the student object(from DB)
+                setattr(student, key, value)
 
-        await db.commit()
-        await db.refresh(student)
+            await db.commit()
+            await db.refresh(student)
+            logger.success("Student updated successfully")
+            return {
+                "message": f"Student updated successfully. Student ID: {student.id}"
+            }
+        except IntegrityError as e:
+            logger.error(f"Integrity error while updating student: {e}")
+            # generally the PostgreSQL's error message will be in e.orig.args[0]
+            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+                e)
 
-        return student
+            # send the error message to the parser
+            readable_error = parse_integrity_error(error_msg)
+            logger.error(readable_error)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     @staticmethod
     async def update_student(

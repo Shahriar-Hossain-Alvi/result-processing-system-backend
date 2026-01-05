@@ -15,7 +15,6 @@ class StudentBaseSchema(BaseModel):
     present_address: str = ""
     permanent_address: str = ""
     date_of_birth: date | None = None
-    mobile_number: str = ""
     photo_url: str = ""
     photo_public_id: str = ""
 
@@ -52,7 +51,6 @@ class StudentUpdateSchema(BaseModel):
     present_address: str | None = None
     permanent_address: str | None = None
     date_of_birth: date | None = None
-    mobile_number: str | None = None
     photo_url: str | None = None
 
 

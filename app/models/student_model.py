@@ -58,10 +58,6 @@ class Student(Base, TimestampMixin):
         Date, nullable=True, default=None
     )
 
-    mobile_number: Mapped[str] = mapped_column(
-        String(11), nullable=False, default=""
-    )
-
     photo_url: Mapped[str] = mapped_column(
         String(400), nullable=False, default=""
     )

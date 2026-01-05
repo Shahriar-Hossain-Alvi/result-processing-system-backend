@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import get_current_user
 from app.permissions.role_checks import ensure_admin
 from app.services.user_service import UserService
 from app.db.db import get_db_session
 from app.schemas.user_schema import AllUsersWithDetailsResponseSchema, UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin, UserUpdateSchemaByUser
-from app.utils import inject_token
 
 
 router = APIRouter(
@@ -28,6 +28,7 @@ async def register_user(
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(e)
         raise HTTPException(status_code=500, detail=str(e))
 
 

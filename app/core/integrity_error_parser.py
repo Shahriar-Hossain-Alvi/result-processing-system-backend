@@ -30,6 +30,9 @@ def parse_integrity_error(error_msg: str) -> str:
         val = match.group(1) if match else ""
         return f"The email address '{val}' is already registered."
 
+    if "users_mobile_number_key" in error_msg:
+        return "This mobile number is already used for another user."
+
     # --- Teacher Tables Constraints ---
     if "teachers_user_id_key" in error_msg:
         return "This user is already assigned to another teacher profile."

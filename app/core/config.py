@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Another Approach => directly get the env variables and if not found use the default values
     # DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db/postgres")
     # SECRET_KEY: str = os.getenv("SECRET_KEY", "supersecretkey")
-    # ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+    # ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 180))
     # Debug Mode
     # DEBUG: bool = os.getenv("DEBUG", "True") == "True"
 

@@ -1,3 +1,4 @@
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.integrity_error_parser import parse_integrity_error
@@ -24,6 +25,7 @@ class TeacherService:
         existing_user = await db.scalar(select(User).where(User.username == teacher_data.user.username))
 
         if existing_user:
+            logger.error("User with this email already exist")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="User with this email already exist")
 
@@ -57,17 +59,19 @@ class TeacherService:
             db.add(new_teacher)
             await db.commit()
             await db.refresh(new_teacher)
-
+            logger.success("Teacher created successfully")
             return {
                 "message": f"Teacher created successfully. Teacher ID: {new_teacher.id}, User ID: {new_user.id}"
             }
         except IntegrityError as e:
+            logger.error(f"Integrity error while creating teacher: {e}")
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
 
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
+            logger.error(readable_error)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
@@ -127,15 +131,19 @@ class TeacherService:
 
             await db.commit()
             await db.refresh(teacher)
-
-            return teacher
+            logger.success("Teacher updated successfully")
+            return {
+                "message": f"Teacher updated successfully. Teacher ID: {teacher.id}"
+            }
         except IntegrityError as e:
+            logger.error(f"Integrity error while updating teacher: {e}")
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
 
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
+            logger.error(readable_error)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 

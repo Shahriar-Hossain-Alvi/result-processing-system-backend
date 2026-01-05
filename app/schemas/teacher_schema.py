@@ -11,7 +11,6 @@ class TeacherBaseSchema(BaseModel):
     present_address: str = ""
     permanent_address: str = ""
     date_of_birth: date | None = None
-    mobile_number: str = ""
     photo_url: str = ""
     photo_public_id: str = ""
 
@@ -36,7 +35,6 @@ class TeacherResponseSchemaNested(TeacherResponseSchema):
 
 class TeachersPublicDataResponse(BaseModel):
     name: str
-    mobile_number: str
     photo_url: str
     model_config = ConfigDict(from_attributes=True)
 
@@ -57,8 +55,7 @@ class TeacherUpdateByAdminSchema(_PartialTeacher):
 
 class TeacherUpdateSchema(BaseModel):
     name: str | None = None
-    present_address: str = ""
-    permanent_address: str = ""
+    present_address: str | None = None
+    permanent_address: str | None = None
     date_of_birth: date | None = None
-    mobile_number: str = ""
-    photo_url: str = ""
+    photo_url: str | None = None

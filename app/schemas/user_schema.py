@@ -10,6 +10,7 @@ class UserBaseSchema(BaseModel):
     email: EmailStr = "student1@gmail.com"
     role: UserRole = UserRole.STUDENT
     is_active: bool = True
+    mobile_number: str | None = None
 
 
 class UserCreateSchema(UserBaseSchema):
@@ -48,7 +49,6 @@ class StudentResponseSchemaToGetAllUser(BaseModel):
     present_address: str
     permanent_address: str
     date_of_birth: date | None = None
-    mobile_number: str
     photo_url: str
     photo_public_id: str
     model_config = ConfigDict(from_attributes=True)
@@ -63,7 +63,6 @@ class TeacherResponseSchemaToGetAllUser(BaseModel):
     present_address: str
     permanent_address: str
     date_of_birth: date | None = None
-    mobile_number: str
     photo_url: str
     photo_public_id: str
     model_config = ConfigDict(from_attributes=True)
