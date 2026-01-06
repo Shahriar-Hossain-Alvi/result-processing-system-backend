@@ -42,11 +42,14 @@ class User(Base, TimestampMixin):
         sqlEnum(
             UserRole,
             name="userrole",
-            # <-- This ensures the value ('admin') is used
+            native_enum=False,  # Added this to auto generate code in version file for enum
+            # this is used to store the string values eg: "admin" instead of the Enum ADMIN in DB
             values_callable=lambda x: [e.value for e in x]
         ),
         nullable=False,
-        default=UserRole.STUDENT
+        default=UserRole.STUDENT,  # python/sqlalchemy level default
+        # DB level default, need the .value (not the Enum name)
+        server_default=UserRole.STUDENT.value
     )
 
     # relationship with student
