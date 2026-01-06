@@ -97,7 +97,7 @@ docker exec -it edutrack_backend_dev alembic upgrade head
 ```
 docker exec -it edutrack_backend_dev python app/db/seed_admin.py
 
-if the previous command fails then run the following:
+- if the previous command fails then run the following:
 
 docker exec -it edutrack_backend_dev /bin/bash -c "PYTHONPATH=/app python app/db/seed_admin.py"
 ```

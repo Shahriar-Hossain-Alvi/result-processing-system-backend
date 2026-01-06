@@ -21,6 +21,7 @@ class UserUpdateSchemaByAdmin(BaseModel):
     email: EmailStr | None = None
     username: EmailStr | None = None
     is_active: bool | None = None
+    mobile_number: str | None = None
 
 
 class UserUpdateSchemaByUser(BaseModel):
@@ -76,6 +77,7 @@ class AllUsersWithDetailsResponseSchema(BaseModel):
     email: EmailStr
     role: UserRole
     is_active: bool
+    mobile_number: str | None
     created_at: datetime
     updated_at: datetime
 

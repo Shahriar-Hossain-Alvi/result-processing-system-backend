@@ -45,11 +45,13 @@ class Mark(Base, TimestampMixin):
         sqlEnum(
             ResultStatus,
             name="result_status",  # enum name in database
+            native_enum=False,  # Added this to auto generate code in version file for enum
             # "values_callable" uses the value inside the "value" in DB instead of using the capitalized name(keys)
             values_callable=lambda x: [e.value for e in x]
         ),
         nullable=False,
-        default=ResultStatus.UNPUBLISHED,
+        default=ResultStatus.UNPUBLISHED,  # python/sqlalchemy level default
+        # DB level default, need the .value (not the Enum name)
         server_default=ResultStatus.UNPUBLISHED.value
     )
 
