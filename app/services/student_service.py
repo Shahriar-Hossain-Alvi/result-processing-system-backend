@@ -22,9 +22,9 @@ class StudentService:
 
     @staticmethod
     async def create_student(
-            db: AsyncSession,
-            request: Request,
             student_data: StudentCreateSchema,
+            request: Request,
+            db: AsyncSession,
             authorized_user: UserOutSchema = Depends(ensure_admin),
     ):
         # check for existance in user table
@@ -74,9 +74,9 @@ class StudentService:
 
             # DB Log
             await create_audit_log(
-                db=db, request=request, level=LogLevel.INFO.value, user_id=authorized_user.id,
+                db=db, request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
                 action="CREATE STUDENT SUCCESS",
-                details=f"New student created. Student ID: {new_student.id}, User ID: {new_user.id}. Created by: {authorized_user.username}"
+                details=f"New student created. Student ID: {new_student.id}, User ID: {new_user.id}."
             )
 
             return {
@@ -94,7 +94,7 @@ class StudentService:
 
             # DB Log
             await create_audit_log(
-                db=db, request=request, level=LogLevel.ERROR.value, user_id=authorized_user.id,
+                db=db, request=request, level=LogLevel.ERROR.value, created_by=authorized_user.id,
                 action="CREATE STUDENT DB ERROR",
                 details=f"Integrity error: {readable_error}",
                 payload={
@@ -133,11 +133,15 @@ class StudentService:
 
         return student
 
+    # update student by admin
+
     @staticmethod
     async def update_student_by_admin(
-            db: AsyncSession,
             student_id: int,
-            student_update_data: StudentUpdateByAdminSchema
+            student_update_data: StudentUpdateByAdminSchema,
+            request: Request,
+            db: AsyncSession,
+            authorized_user: UserOutSchema
     ):
         # check for existing student
         student = await db.scalar(select(Student).where(Student.id == student_id))
@@ -157,6 +161,17 @@ class StudentService:
             await db.commit()
             await db.refresh(student)
             logger.success("Student updated successfully")
+
+            await create_audit_log(
+                db=db, request=request, level=LogLevel.INFO.value,
+                action="UPDATE STUDENT SUCCCESS",
+                details=f"Student: {student.name} updated. Student ID: {student.id} updated",
+                created_by=authorized_user.id,
+                payload={
+                    "payload_data": student_update_data.model_dump()
+                }
+            )
+
             return {
                 "message": f"Student updated successfully. Student ID: {student.id}"
             }
@@ -169,14 +184,30 @@ class StudentService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
             logger.error(readable_error)
+
+            await create_audit_log(
+                db=db, request=request, level=LogLevel.ERROR.value,
+                action="UPDATE STUDENT ERROR",
+                details=f"Student update failed. Error: {readable_error}",
+                created_by=authorized_user.id,
+                payload={
+                    "error": readable_error,
+                    "raw_error": error_msg,
+                    "payload_data": student_update_data.model_dump(exclude_unset=True)
+                }
+            )
+
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     @staticmethod
+    # update student (self)
     async def update_student(
-            db: AsyncSession,
             student_id: int,
-            student_update_data: StudentUpdateSchema
+            student_update_data: StudentUpdateSchema,
+            request: Request,
+            db: AsyncSession,
+            current_user: UserOutSchema
     ):
         # check for existing student
         student = await db.scalar(select(Student).where(Student.id == student_id))
@@ -185,26 +216,101 @@ class StudentService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
 
-        updated_student_data = student_update_data.model_dump(
-            exclude_unset=True)  # convert to dictionary
+        try:
+            updated_student_data = student_update_data.model_dump(
+                exclude_unset=True)  # convert to dictionary
 
-        for key, value in updated_student_data.items():
-            # apply the updated data in the student object(from DB)
-            setattr(student, key, value)
+            for key, value in updated_student_data.items():
+                # apply the updated data in the student object(from DB)
+                setattr(student, key, value)
 
-        await db.commit()
-        await db.refresh(student)
+            await db.commit()
+            await db.refresh(student)
 
-        return student
+            await create_audit_log(
+                db=db, request=request, level=LogLevel.INFO.value,
+                action="UPDATE STUDENT SUCCCESS",
+                details=f"Student: {student.name}, ID: {student.id} updated",
+                created_by=current_user.id,
+                payload={
+                    "payload_data": student_update_data.model_dump(exclude_unset=True)
+                }
+            )
+
+            return {
+                "message": f"Student updated successfully. Student ID: {student.id}"
+            }
+        except IntegrityError as e:
+            # generally the PostgreSQL's error message will be in e.orig.args[0]
+            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+                e)
+
+            # send the error message to the parser
+            readable_error = parse_integrity_error(error_msg)
+
+            await create_audit_log(
+                db=db, request=request, level=LogLevel.ERROR.value,
+                action="UPDATE STUDENT ERROR",
+                details=f"Student update failed. Error: {readable_error}",
+                created_by=current_user.id,
+                payload={
+                    "error": readable_error,
+                    "raw_error": error_msg,
+                    "payload_data": student_update_data.model_dump()
+                }
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     @staticmethod
     async def delete_student(
+            student_id: int,
+            request: Request,
             db: AsyncSession,
-            student_id: int
+            authorized_user: UserOutSchema
     ):
-        student = await StudentService.get_student(db, student_id)
 
-        await db.delete(student)
-        await db.commit()
+        student = await db.scalar(select(Student).where(Student.id == student_id))
 
-        return {"message": f"{student.name} student deleted successfully"}
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+        try:
+            await db.delete(student)
+            await db.commit()
+
+            await create_audit_log(
+                db=db, request=request, level=LogLevel.INFO.value,
+                action="DELETE STUDENT SUCCCESS",
+                details=f"Student: {student.name}, ID: {student.id} deleted",
+                created_by=authorized_user.id,
+                payload={
+                    "payload_data": student_id
+                }
+            )
+
+            return {"message": f"{student.name} student deleted successfully"}
+        except IntegrityError as e:
+            # generally the PostgreSQL's error message will be in e.orig.args[0]
+            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+                e)
+
+            # send the error message to the parser
+            readable_error = parse_integrity_error(error_msg)
+
+            await create_audit_log(
+                db=db, request=request, level=LogLevel.ERROR.value,
+                action="DELETE STUDENT ERROR",
+                details=f"Student deletion failed. Error: {readable_error}",
+                created_by=authorized_user.id,
+                payload={
+                    "error": readable_error,
+                    "raw_error": error_msg,
+                    "payload_data": student_id
+                }
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)

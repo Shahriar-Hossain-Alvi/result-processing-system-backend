@@ -10,11 +10,11 @@ async def create_audit_log(
     level: str = "info",  # info for success, error for error
     details: str | None = None,  # custom message
     # user id (who sent the request eg; ID from get_current_user or authoried user)
-    user_id: int | None = None,
+    created_by: int | None = None,
     payload: dict | None = None
 ):
     new_log = AuditLog(
-        user_id=user_id,
+        created_by=created_by,
         level=level,
         action=action,
         method=request.method if request else None,

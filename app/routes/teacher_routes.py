@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.authenticated_user import get_current_user
-from app.permissions.role_checks import ensure_admin_or_teacher, ensure_admin
+from app.permissions.role_checks import ensure_admin_or_teacher, ensure_admin, ensure_super_admin
 from app.db.db import get_db_session
 from app.schemas.teacher_schema import TeacherCreateSchema, TeacherResponseSchema, TeacherResponseSchemaNested, TeacherUpdateByAdminSchema, TeacherUpdateSchema, TeachersDepartmentWiseGroupResponse
 from app.schemas.user_schema import UserOutSchema
@@ -10,19 +10,19 @@ from app.services.teacher_service import TeacherService
 
 router = APIRouter(prefix='/teachers', tags=['teachers'])
 
+
 # create teacher record
-
-
 @router.post("/")
 async def create_teacher_record(
     teacher_data: TeacherCreateSchema,
+    request: Request,
     # token_injection: None = Depends(inject_token),
-    authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
 
     try:
-        return await TeacherService.create_teacher(db, teacher_data)
+        return await TeacherService.create_teacher(teacher_data, request, db, authorized_user)
     except HTTPException:
         raise
     except Exception as e:
@@ -83,17 +83,18 @@ async def get_single_teacher(
 @router.patch("/{id}", response_model=TeacherResponseSchema)
 async def update_teacher(
         id: int,
-        teacher_data: TeacherUpdateSchema,
-        inject_token: None = Depends(inject_token),
-        current_user: UserOutSchema = Depends(get_current_user),
-        db: AsyncSession = Depends(get_db_session)
+        teacher_update_data: TeacherUpdateSchema,
+        request: Request,
+        # inject_token: None = Depends(inject_token),
+        db: AsyncSession = Depends(get_db_session),
+        current_user: UserOutSchema = Depends(get_current_user)
 ):
     if id != current_user.id:
         raise HTTPException(
             status_code=400, detail="You are not authorized to update this record.")
 
     try:
-        return await TeacherService.update_teacher(db, id, teacher_data)
+        return await TeacherService.update_teacher(id, teacher_update_data, request, db, current_user)
     except HTTPException:
         raise
     except Exception as e:
@@ -105,13 +106,15 @@ async def update_teacher(
 @router.patch("/updateByAdmin/{id}")
 async def update_teacher_by_admin(
         id: int,
-        teacher_data: TeacherUpdateByAdminSchema,
+        teacher_update_data: TeacherUpdateByAdminSchema,
+        request: Request,
         # inject_token: None = Depends(inject_token),
-        authorized_user: UserOutSchema = Depends(ensure_admin),
-        db: AsyncSession = Depends(get_db_session)):
+        db: AsyncSession = Depends(get_db_session),
+        authorized_user: UserOutSchema = Depends(ensure_admin)
+):
 
     try:
-        return await TeacherService.update_teacher_by_admin(db, id, teacher_data)
+        return await TeacherService.update_teacher_by_admin(id, teacher_update_data, request, db, authorized_user)
     except HTTPException:
         raise
     except Exception as e:
@@ -124,13 +127,14 @@ async def update_teacher_by_admin(
 @router.delete("/{id}")
 async def delete_a_teacher(
     id: int,
+    request: Request,
     # token_injection: None = Depends(inject_token),
-    authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
+    authorized_user: UserOutSchema = Depends(ensure_super_admin),
 ):
 
     try:
-        return await TeacherService.delete_teacher(db, id)
+        return await TeacherService.delete_teacher(id, request, db, authorized_user)
     except HTTPException:
         raise
     except Exception as e:

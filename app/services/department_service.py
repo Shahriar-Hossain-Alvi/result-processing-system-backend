@@ -46,7 +46,7 @@ class DepartmentService:
                 db=db, request=request, level=LogLevel.INFO.value,
                 action="CREATE DEPARTMENT SUCCCESS",
                 details=f"New Department created successfully. ID: {new_department.id}",
-                user_id=authorized_user.id
+                created_by=authorized_user.id
             )
 
             return {
@@ -64,7 +64,7 @@ class DepartmentService:
                 db=db, request=request, level=LogLevel.ERROR.value,
                 action="CREATE DEPARTMENT ERROR",
                 details=f"Error while creating new department: {readable_error}",
-                user_id=authorized_user.id,
+                created_by=authorized_user.id,
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,
@@ -117,9 +117,9 @@ class DepartmentService:
                 db=db, request=request, level=LogLevel.INFO.value,
                 action="UPDATE DEPARTMENT SUCCCESS",
                 details=f"Department: {department.department_name} updated",
-                user_id=authorized_user.id,
+                created_by=authorized_user.id,
                 payload={
-                    "payload_data": department_data.model_dump()
+                    "payload_data": department_data.model_dump(exclude_unset=True)
                 }
             )
 
@@ -138,7 +138,7 @@ class DepartmentService:
                 db=db, request=request, level=LogLevel.ERROR.value,
                 action="UPDATE DEPARTMENT ERROR",
                 details=f"Department update failed. Error: {readable_error}",
-                user_id=authorized_user.id,
+                created_by=authorized_user.id,
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,
@@ -175,7 +175,7 @@ class DepartmentService:
                 db=db, request=request, level=LogLevel.INFO.value,
                 action="DELETE DEPARTMENT SUCCCESS",
                 details=f"Department: {department.department_name}, ID: {department.id} deleted",
-                user_id=authorized_user.id,
+                created_by=authorized_user.id,
                 payload={
                     "payload_data": department_id
                 }
@@ -194,7 +194,7 @@ class DepartmentService:
                 db=db, request=request, level=LogLevel.ERROR.value,
                 action="DELETE DEPARTMENT ERROR",
                 details=f"Department deletion failed. Error: {readable_error}",
-                user_id=authorized_user.id,
+                created_by=authorized_user.id,
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,

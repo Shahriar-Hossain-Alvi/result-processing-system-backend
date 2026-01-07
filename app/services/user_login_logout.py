@@ -51,7 +51,7 @@ async def login_user(
         logger.success("Login successful")
 
         await create_audit_log(
-            db=db, request=request, level="info", user_id=user.id,
+            db=db, request=request, level="info", created_by=user.id,
             action="LOGIN ATTEMPT",
             details=f"User {user.username} logged in successfully"
         )
@@ -70,7 +70,7 @@ async def login_user(
         logger.error(f"Readable Error: {readable_error}")
 
         await create_audit_log(
-            db=db, request=request, level=LogLevel.ERROR.value, user_id=user.id,
+            db=db, request=request, level=LogLevel.ERROR.value, created_by=user.id,
             action="LOGIN ATTEMPT",
             details=f"Login failed for user {user.username}",
             payload={

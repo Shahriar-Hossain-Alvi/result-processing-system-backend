@@ -19,7 +19,7 @@ class AuditLog(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
 
-    user_id: Mapped[int] = mapped_column(
+    created_by: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True)
 
     level: Mapped[str] = mapped_column(

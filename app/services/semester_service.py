@@ -46,7 +46,7 @@ class SemesterService:
                 db=db, request=request, level=LogLevel.INFO.value,
                 action="CREATE SEMESTER SUCCCESS",
                 details=f"Semester: {new_semester.semester_name}, ID: {new_semester.id} created",
-                user_id=authorized_user.id,
+                created_by=authorized_user.id,
                 payload={
                     "payload_data": semester_data.model_dump()
                 }
@@ -71,7 +71,7 @@ class SemesterService:
                 db=db, request=request, level=LogLevel.ERROR.value,
                 action="CREATE SEMESTER ERROR",
                 details=f"Semester creation failed. Error: {readable_error}",
-                user_id=authorized_user.id,
+                created_by=authorized_user.id,
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,
@@ -127,9 +127,9 @@ class SemesterService:
                 db=db, request=request, level=LogLevel.INFO.value,
                 action="UPDATE SEMESTER SUCCCESS",
                 details=f"Semester: {semester.semester_name} updated",
-                user_id=authorized_user.id,
+                created_by=authorized_user.id,
                 payload={
-                    "payload_data": semester_update_data.model_dump()
+                    "payload_data": semester_update_data.model_dump(exclude_unset=True)
                 }
             )
 
@@ -151,7 +151,7 @@ class SemesterService:
                 db=db, request=request, level=LogLevel.ERROR.value,
                 action="UPDATE SEMESTER ERROR",
                 details=f"Semester update failed. Error: {readable_error}",
-                user_id=authorized_user.id,
+                created_by=authorized_user.id,
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,
@@ -185,7 +185,7 @@ class SemesterService:
                 db=db, request=request, level=LogLevel.INFO.value,
                 action="DELETE SEMESTER SUCCCESS",
                 details=f"Semester: {semester.semester_name}, ID: {semester.id} deleted",
-                user_id=authorized_user.id,
+                created_by=authorized_user.id,
                 payload={
                     "payload_data": semester_id
                 }
@@ -204,7 +204,7 @@ class SemesterService:
                 db=db, request=request, level=LogLevel.ERROR.value,
                 action="DELETE SEMESTER ERROR",
                 details=f"Semester deletion failed. Error: {readable_error}",
-                user_id=authorized_user.id,
+                created_by=authorized_user.id,
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,
