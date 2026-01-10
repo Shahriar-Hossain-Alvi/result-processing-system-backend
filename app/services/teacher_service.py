@@ -9,7 +9,6 @@ from app.models.teacher_model import Teacher
 from app.models.department_model import Department
 from app.schemas.teacher_schema import TeacherCreateSchema, TeacherUpdateByAdminSchema, TeacherUpdateSchema
 from app.schemas.user_schema import UserOutSchema
-from app.services.audit_logging_service import create_audit_log_isolated
 from app.utils import check_existence
 from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import joinedload, selectinload
@@ -66,11 +65,11 @@ class TeacherService:
             logger.success("Teacher created successfully")
 
             # DB Log
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
-                action="CREATE TEACHER SUCCESS",
-                details=f"New teacher created. Teacher ID: {new_teacher.id}, User ID: {new_user.id}."
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
+            #     action="CREATE TEACHER SUCCESS",
+            #     details=f"New teacher created. Teacher ID: {new_teacher.id}, User ID: {new_user.id}."
+            # )
 
             return {
                 "message": f"Teacher created successfully. Teacher ID: {new_teacher.id}, User ID: {new_user.id}"
@@ -87,17 +86,17 @@ class TeacherService:
             logger.error(readable_error)
 
             # DB Log
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value, created_by=getattr(
-                    authorized_user, "id", None),
-                action="CREATE TEACHER DB ERROR",
-                details=f"Integrity error: {readable_error}",
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                    "payload_data": teacher_data.model_dump(mode="json", exclude_none=True, exclude={"user": {"password"}})
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value, created_by=getattr(
+            #         authorized_user, "id", None),
+            #     action="CREATE TEACHER DB ERROR",
+            #     details=f"Integrity error: {readable_error}",
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #         "payload_data": teacher_data.model_dump(mode="json", exclude_none=True, exclude={"user": {"password"}})
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
@@ -159,15 +158,15 @@ class TeacherService:
             await db.refresh(teacher)
             logger.success("Teacher updated successfully")
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value,
-                action="UPDATE TEACHER SUCCCESS",
-                details=f"Teacher: {teacher.name} updated. Teacher ID: {teacher.id} updated",
-                created_by=authorized_user.id,
-                payload={
-                    "payload_data": teacher_update_data.model_dump()
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value,
+            #     action="UPDATE TEACHER SUCCCESS",
+            #     details=f"Teacher: {teacher.name} updated. Teacher ID: {teacher.id} updated",
+            #     created_by=authorized_user.id,
+            #     payload={
+            #         "payload_data": teacher_update_data.model_dump()
+            #     }
+            # )
 
             return {
                 "message": f"Teacher updated successfully. Teacher ID: {teacher.id}"
@@ -183,17 +182,17 @@ class TeacherService:
             readable_error = parse_integrity_error(error_msg)
             logger.error(readable_error)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value,
-                action="UPDATE TEACHER ERROR",
-                details=f"Teacher update failed. Error: {readable_error}",
-                created_by=getattr(authorized_user, "id", None),
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                    "payload_data": teacher_update_data.model_dump(exclude_unset=True)
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value,
+            #     action="UPDATE TEACHER ERROR",
+            #     details=f"Teacher update failed. Error: {readable_error}",
+            #     created_by=getattr(authorized_user, "id", None),
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #         "payload_data": teacher_update_data.model_dump(exclude_unset=True)
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
@@ -224,15 +223,15 @@ class TeacherService:
             await db.commit()
             await db.refresh(teacher)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value,
-                action="UPDATE TEACHER SUCCCESS",
-                details=f"Teacher: {teacher.name}, ID: {teacher.id} updated",
-                created_by=current_user.id,
-                payload={
-                    "payload_data": teacher_update_data.model_dump(exclude_unset=True)
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value,
+            #     action="UPDATE TEACHER SUCCCESS",
+            #     details=f"Teacher: {teacher.name}, ID: {teacher.id} updated",
+            #     created_by=current_user.id,
+            #     payload={
+            #         "payload_data": teacher_update_data.model_dump(exclude_unset=True)
+            #     }
+            # )
 
             return teacher
         except IntegrityError as e:
@@ -244,17 +243,17 @@ class TeacherService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value,
-                action="UPDATE TEACHER ERROR",
-                details=f"Teacher update failed. Error: {readable_error}",
-                created_by=getattr(current_user, "id", None),
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                    "payload_data": teacher_update_data.model_dump()
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value,
+            #     action="UPDATE TEACHER ERROR",
+            #     details=f"Teacher update failed. Error: {readable_error}",
+            #     created_by=getattr(current_user, "id", None),
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #         "payload_data": teacher_update_data.model_dump()
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
@@ -277,15 +276,15 @@ class TeacherService:
             await db.delete(teacher)
             await db.commit()
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value,
-                action="DELETE TEACHER SUCCCESS",
-                details=f"Teacher: {teacher.name}, ID: {teacher.id} deleted",
-                created_by=authorized_user.id,
-                payload={
-                    "payload_data": teacher_id
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value,
+            #     action="DELETE TEACHER SUCCCESS",
+            #     details=f"Teacher: {teacher.name}, ID: {teacher.id} deleted",
+            #     created_by=authorized_user.id,
+            #     payload={
+            #         "payload_data": teacher_id
+            #     }
+            # )
 
             return {"message": f"Teacher: {teacher.name} deleted successfully"}
         except IntegrityError as e:
@@ -297,17 +296,17 @@ class TeacherService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value,
-                action="DELETE TEACHER ERROR",
-                details=f"Teacher deletion failed. Error: {readable_error}",
-                created_by=getattr(authorized_user, "id", None),
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                    "payload_data": teacher_id
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value,
+            #     action="DELETE TEACHER ERROR",
+            #     details=f"Teacher deletion failed. Error: {readable_error}",
+            #     created_by=getattr(authorized_user, "id", None),
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #         "payload_data": teacher_id
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)

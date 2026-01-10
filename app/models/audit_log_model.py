@@ -31,7 +31,7 @@ class AuditLog(Base, TimestampMixin):
             values_callable=lambda x: [e.value for e in x]
         ),
         nullable=False,
-        default=LogLevel.INFO,  # python/sqlalchemy level default
+        default=LogLevel.INFO.value,  # python/sqlalchemy level default
         # DB level default, need the .value (not the Enum name)
         server_default=LogLevel.INFO.value
     )

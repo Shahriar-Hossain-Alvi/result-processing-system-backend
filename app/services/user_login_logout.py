@@ -4,11 +4,12 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import verify_password, create_access_token
+from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models import User
 from app.core import settings
 from app.models.audit_log_model import LogLevel
-from app.services.audit_logging_service import create_audit_log_isolated
+from app.services.audit_logging_service import create_audit_log
 from sqlalchemy.exc import IntegrityError
 
 
@@ -17,7 +18,6 @@ async def login_user(
     username: str,
     password: str,
     response: Response,
-    request: Request
 ):
     # get user
     statement = select(User).where(User.username == username)
@@ -49,61 +49,33 @@ async def login_user(
                 timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         )
         logger.success("Login successful")
-
-        await create_audit_log_isolated(
-            request=request, level="info", created_by=user.id,
-            action="LOGIN ATTEMPT",
-            details=f"User {user.username} logged in successfully"
-        )
         return {
-            "message": "Login successful"
+            "message": "Login successful",
+            "user_data": user
         }
 
     except IntegrityError as e:
         await db.rollback()
-        logger.error(f"Error occurred while login: {e}")
         # generally the PostgreSQL's error message will be in e.orig.args[0]
         error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
             e)
-
         # send the error message to the parser
         readable_error = parse_integrity_error(error_msg)
+
+        logger.error(f"Error occurred while login: {e}")
         logger.error(f"Readable Error: {readable_error}")
 
-        await create_audit_log_isolated(
-            request=request, level=LogLevel.ERROR.value, created_by=getattr(
-                user, "id", None),
-            action="LOGIN ATTEMPT",
-            details=f"Login failed for user {user.username}",
-            payload={
-                "error": readable_error,
-                "raw_error": error_msg,
-                "payload_data": username
-            }
-        )
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
+        raise DomainIntegrityError(
+            error_message=readable_error, raw_error=error_msg)
 
 
-async def logout_user(request: Request, response: Response, db: AsyncSession):
-    try:
-        response.delete_cookie(
-            key="access_token",
-            httponly=True,
-            samesite="lax"
-        )
-        logger.success("Cookie deleted")
+async def logout_user(response: Response):
 
-        return {"message": "Logout successful"}
-    except Exception as e:
-        logger.error(f"Error occurred while logout: {e}")
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        samesite="lax"
+    )
+    logger.success("Cookie deleted")
 
-        await create_audit_log_isolated(
-            request=request,
-            level=LogLevel.ERROR.value,
-            action="LOGOUT ATTEMPT",
-            details=f"Logout failed",
-        )
-
-        raise HTTPException(status_code=500, detail=str(e))
+    return {"message": "Logout successful"}

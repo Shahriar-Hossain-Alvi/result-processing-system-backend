@@ -1,6 +1,7 @@
-from fastapi import HTTPException, Depends
+from fastapi import HTTPException, Depends, status
 from app.core.authenticated_user import get_current_user
 from app.schemas.user_schema import UserOutSchema
+from typing import List
 
 # This functions already returns the current user, so passing current_user as get_current_user dependency will be redundant wherever this function is used
 
@@ -38,23 +39,18 @@ def ensure_student(current_user: UserOutSchema = Depends(get_current_user)):
 
 
 """
-from fastapi import HTTPException, status, Depends
-from typing import List
+# This Depedency Function can take multiple Roles
+# ব্যবহার: Depends(ensure_roles(["super_admin", "admin", "teacher", "student"]))
 
 def ensure_roles(allowed_roles: List[str]):
-
-একইসাথে একাধিক রোলকে পারমিশন দেওয়ার জন্য ডিপেন্ডেন্সি।
-ব্যবহার: Depends(ensure_roles(["super_admin", "admin", "teacher"]))
-
     async def role_checker(current_user: UserOutSchema = Depends(get_current_user)):
-        # current_user.role.value বা আপনার মডেলের ফিল্ড নাম অনুযায়ী চেক করুন
+        # check current user role
         if current_user.role.value not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied. Required roles: {allowed_roles}"
+                detail=f"Access denied."
             )
         return current_user
-    
     return role_checker
 """
 

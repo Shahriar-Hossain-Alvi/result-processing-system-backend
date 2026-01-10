@@ -7,9 +7,7 @@ from app.models import Department
 from app.models.audit_log_model import LogLevel
 from app.schemas.department_schema import DepartmentCreateSchema, DepartmentOutSchema, DepartmentUpdateSchema
 from sqlalchemy.exc import IntegrityError
-
 from app.schemas.user_schema import UserOutSchema
-from app.services.audit_logging_service import create_audit_log_isolated
 
 
 class DepartmentService:
@@ -42,12 +40,12 @@ class DepartmentService:
             # refresh the object(get the new data)
             await db.refresh(new_department)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value,
-                action="CREATE DEPARTMENT SUCCCESS",
-                details=f"New Department created successfully. ID: {new_department.id}",
-                created_by=authorized_user.id
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value,
+            #     action="CREATE DEPARTMENT SUCCCESS",
+            #     details=f"New Department created successfully. ID: {new_department.id}",
+            #     created_by=authorized_user.id
+            # )
 
             return {
                 "message": f"New Department created successfully. ID: {new_department.id}"
@@ -61,17 +59,17 @@ class DepartmentService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value,
-                action="CREATE DEPARTMENT ERROR",
-                details=f"Error while creating new department: {readable_error}",
-                created_by=getattr(authorized_user, "id", None),
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                    "payload_data": department_data.model_dump()
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value,
+            #     action="CREATE DEPARTMENT ERROR",
+            #     details=f"Error while creating new department: {readable_error}",
+            #     created_by=getattr(authorized_user, "id", None),
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #         "payload_data": department_data.model_dump()
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
@@ -114,15 +112,15 @@ class DepartmentService:
             await db.commit()
             await db.refresh(department)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value,
-                action="UPDATE DEPARTMENT SUCCCESS",
-                details=f"Department: {department.department_name} updated",
-                created_by=authorized_user.id,
-                payload={
-                    "payload_data": department_data.model_dump(exclude_unset=True)
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value,
+            #     action="UPDATE DEPARTMENT SUCCCESS",
+            #     details=f"Department: {department.department_name} updated",
+            #     created_by=authorized_user.id,
+            #     payload={
+            #         "payload_data": department_data.model_dump(exclude_unset=True)
+            #     }
+            # )
 
             return {
                 "message": f"{department.department_name} department updated successfully. ID: {department.id}"
@@ -136,17 +134,17 @@ class DepartmentService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value,
-                action="UPDATE DEPARTMENT ERROR",
-                details=f"Department update failed. Error: {readable_error}",
-                created_by=getattr(authorized_user, "id", None),
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                    "payload_data": department_data.model_dump()
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value,
+            #     action="UPDATE DEPARTMENT ERROR",
+            #     details=f"Department update failed. Error: {readable_error}",
+            #     created_by=getattr(authorized_user, "id", None),
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #         "payload_data": department_data.model_dump()
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
@@ -173,15 +171,15 @@ class DepartmentService:
 
             logger.success("Department deleted successfully")
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value,
-                action="DELETE DEPARTMENT SUCCCESS",
-                details=f"Department: {department.department_name}, ID: {department.id} deleted",
-                created_by=authorized_user.id,
-                payload={
-                    "payload_data": department_id
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value,
+            #     action="DELETE DEPARTMENT SUCCCESS",
+            #     details=f"Department: {department.department_name}, ID: {department.id} deleted",
+            #     created_by=authorized_user.id,
+            #     payload={
+            #         "payload_data": department_id
+            #     }
+            # )
 
             return {"message": f"{department.department_name} department deleted successfully"}
         except IntegrityError as e:
@@ -193,17 +191,17 @@ class DepartmentService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value,
-                action="DELETE DEPARTMENT ERROR",
-                details=f"Department deletion failed. Error: {readable_error}",
-                created_by=getattr(authorized_user, "id", None),
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                    "payload_data": department_id
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value,
+            #     action="DELETE DEPARTMENT ERROR",
+            #     details=f"Department deletion failed. Error: {readable_error}",
+            #     created_by=getattr(authorized_user, "id", None),
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #         "payload_data": department_id
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)

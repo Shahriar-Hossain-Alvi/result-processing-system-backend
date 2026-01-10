@@ -1,10 +1,9 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from app.core import settings
 
-
 # create engine and database session
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    settings.DATABASE_URL,  # Async DB URL
     echo=False,  # False because we will use Logger to print sql queries
     future=True,  # enables sqlalchemy 2.0
 )

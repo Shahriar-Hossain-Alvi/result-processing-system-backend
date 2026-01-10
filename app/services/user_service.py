@@ -12,8 +12,6 @@ from fastapi import HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
-from app.services.audit_logging_service import create_audit_log_isolated
-
 
 class UserService:
 
@@ -51,11 +49,11 @@ class UserService:
             logger.success("New user created successfully")
 
             # DB Log
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
-                action="CREATE USER SUCCESS",
-                details=f"New user created. User ID: {new_user.id}."
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
+            #     action="CREATE USER SUCCESS",
+            #     details=f"New user created. User ID: {new_user.id}."
+            # )
 
             return {"message": f"User created successfully. ID: {new_user.id}, username: {new_user.username}"}
         except IntegrityError as e:
@@ -69,17 +67,17 @@ class UserService:
             readable_error = parse_integrity_error(error_msg)
             logger.error(f"Readable Error: {readable_error}")
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value, created_by=getattr(
-                    authorized_user, "id", None),
-                action="CREATE USER DB ERROR",
-                details=f"Integrity error: {readable_error}",
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                       "payload_data": user_data.model_dump(mode="json", exclude_none=True, exclude={"password"})
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value, created_by=getattr(
+            #         authorized_user, "id", None),
+            #     action="CREATE USER DB ERROR",
+            #     details=f"Integrity error: {readable_error}",
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #            "payload_data": user_data.model_dump(mode="json", exclude_none=True, exclude={"password"})
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
@@ -157,11 +155,11 @@ class UserService:
             await db.refresh(user)
 
             # DB Log
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
-                action="UPDATE USER SUCCESS",
-                details=f"User updated. User ID: {user.id}."
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
+            #     action="UPDATE USER SUCCESS",
+            #     details=f"User updated. User ID: {user.id}."
+            # )
 
             return {
                 "message": f"User updated successfully for username: {user.username}, role: {user.role.value}"
@@ -175,17 +173,17 @@ class UserService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value, created_by=getattr(
-                    authorized_user, "id", None),
-                action="UPDATE USER DB ERROR",
-                details=f"Integrity error: {readable_error}",
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                       "payload_data": user_update_data_by_admin.model_dump()
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value, created_by=getattr(
+            #         authorized_user, "id", None),
+            #     action="UPDATE USER DB ERROR",
+            #     details=f"Integrity error: {readable_error}",
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #            "payload_data": user_update_data_by_admin.model_dump()
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
@@ -216,11 +214,11 @@ class UserService:
             await db.refresh(user)
 
             # DB Log
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value, created_by=current_user.id,
-                action="UPDATE USER SUCCESS",
-                details=f"User updated. User ID: {user.id}."
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value, created_by=current_user.id,
+            #     action="UPDATE USER SUCCESS",
+            #     details=f"User updated. User ID: {user.id}."
+            # )
 
             return user
         except IntegrityError as e:
@@ -232,17 +230,17 @@ class UserService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value, created_by=getattr(
-                    current_user, "id", None),
-                action="UPDATE USER DB ERROR",
-                details=f"Integrity error: {readable_error}",
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                       "payload_data": user_id
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value, created_by=getattr(
+            #         current_user, "id", None),
+            #     action="UPDATE USER DB ERROR",
+            #     details=f"Integrity error: {readable_error}",
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #            "payload_data": user_id
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
@@ -265,11 +263,11 @@ class UserService:
             await db.commit()
 
             # DB Log
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
-                action="DELETE USER SUCCESS",
-                details=f"User deleted. User ID: {user.id}."
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
+            #     action="DELETE USER SUCCESS",
+            #     details=f"User deleted. User ID: {user.id}."
+            # )
 
             return {
                 "message": f"User: {user.username}, role: {user.role.value} deleted successfully"
@@ -283,17 +281,17 @@ class UserService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value, created_by=getattr(
-                    authorized_user, "id", None),
-                action="DELETE USER DB ERROR",
-                details=f"Integrity error: {readable_error}",
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                       "payload_data": user_id
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value, created_by=getattr(
+            #         authorized_user, "id", None),
+            #     action="DELETE USER DB ERROR",
+            #     details=f"Integrity error: {readable_error}",
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #            "payload_data": user_id
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)

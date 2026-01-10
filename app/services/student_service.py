@@ -1,6 +1,7 @@
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.core.pw_hash import hash_password
 from app.db.db import AsyncSessionLocal
@@ -11,11 +12,10 @@ from app.models.student_model import Student
 from app.models.user_model import User
 from app.permissions.role_checks import ensure_admin
 from app.schemas.student_schema import StudentCreateSchema, StudentUpdateByAdminSchema, StudentUpdateSchema
-from fastapi import HTTPException, Request, status, Depends
+from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
 from app.schemas.user_schema import UserOutSchema
-from app.services.audit_logging_service import create_audit_log_isolated
 from app.utils import check_existence
 
 
@@ -24,9 +24,8 @@ class StudentService:
     @staticmethod
     async def create_student(
             student_data: StudentCreateSchema,
-            request: Request,
             db: AsyncSession,
-            authorized_user: UserOutSchema = Depends(ensure_admin),
+            request: Request | None = None,
     ):
         # check for existance in user table
         existing_user = await db.scalar(select(User).where(User.username == student_data.user.username))
@@ -72,49 +71,30 @@ class StudentService:
 
             logger.success("New student created successfully")
 
-            # DB Log
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
-                action="CREATE STUDENT SUCCESS",
-                details=f"New student created. Student ID: {new_student.id}, User ID: {new_user.id}."
-            )
-            # await db.commit()  # for the audit log
-            return {
-                "message": f"Student created successfully. Student ID: {new_student.id}, User ID: {new_user.id}"
-            }
+            return new_student
         except IntegrityError as e:
             # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state to save the Audit Log
             await db.rollback()
 
             # generally the PostgreSQL's error message will be in e.orig.args[0]
-            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
-                e)
+            # raw_error = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+            #     e)
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
 
             logger.error(f"Integrity error while creating student: {e}")
+            logger.error(f"Readable Error: {readable_error}")
 
-            readable_error = parse_integrity_error(error_msg)
-            logger.error("Readable Error: ", readable_error)
-
-            # DB Log
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value,
-                created_by=getattr(authorized_user, "id", None),
-                action="CREATE STUDENT DB ERROR",
-                details=f"Integrity error: {readable_error}",
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                    "payload_data": student_data.model_dump(
-                        mode="json",
-                        exclude_none=True,
-                        exclude={"user": {"password"}}
-                    )
+            # ✅ attach audit payload safely
+            if request:
+                request.state.audit_payload = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
                 }
-            )
-            # await db.commit()
 
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
 
     @staticmethod
     async def get_students(
@@ -171,15 +151,15 @@ class StudentService:
             await db.refresh(student)
             logger.success("Student updated successfully")
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value,
-                action="UPDATE STUDENT SUCCCESS",
-                details=f"Student: {student.name} updated. Student ID: {student.id} updated",
-                created_by=authorized_user.id,
-                payload={
-                    "payload_data": student_update_data.model_dump()
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value,
+            #     action="UPDATE STUDENT SUCCCESS",
+            #     details=f"Student: {student.name} updated. Student ID: {student.id} updated",
+            #     created_by=authorized_user.id,
+            #     payload={
+            #         "payload_data": student_update_data.model_dump()
+            #     }
+            # )
 
             return {
                 "message": f"Student updated successfully. Student ID: {student.id}"
@@ -195,17 +175,17 @@ class StudentService:
             readable_error = parse_integrity_error(error_msg)
             logger.error(readable_error)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value,
-                action="UPDATE STUDENT ERROR",
-                details=f"Student update failed. Error: {readable_error}",
-                created_by=getattr(authorized_user, "id", None),
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                    "payload_data": student_update_data.model_dump(exclude_unset=True)
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value,
+            #     action="UPDATE STUDENT ERROR",
+            #     details=f"Student update failed. Error: {readable_error}",
+            #     created_by=getattr(authorized_user, "id", None),
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #         "payload_data": student_update_data.model_dump(exclude_unset=True)
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
@@ -237,15 +217,15 @@ class StudentService:
             await db.commit()
             await db.refresh(student)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value,
-                action="UPDATE STUDENT SUCCCESS",
-                details=f"Student: {student.name}, ID: {student.id} updated",
-                created_by=current_user.id,
-                payload={
-                    "payload_data": student_update_data.model_dump(exclude_unset=True)
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value,
+            #     action="UPDATE STUDENT SUCCCESS",
+            #     details=f"Student: {student.name}, ID: {student.id} updated",
+            #     created_by=current_user.id,
+            #     payload={
+            #         "payload_data": student_update_data.model_dump(exclude_unset=True)
+            #     }
+            # )
 
             return {
                 "message": f"Student updated successfully. Student ID: {student.id}"
@@ -259,17 +239,17 @@ class StudentService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value,
-                action="UPDATE STUDENT ERROR",
-                details=f"Student update failed. Error: {readable_error}",
-                created_by=getattr(current_user, "id", None),
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                    "payload_data": student_update_data.model_dump()
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value,
+            #     action="UPDATE STUDENT ERROR",
+            #     details=f"Student update failed. Error: {readable_error}",
+            #     created_by=getattr(current_user, "id", None),
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #         "payload_data": student_update_data.model_dump()
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
@@ -292,15 +272,15 @@ class StudentService:
             await db.delete(student)
             await db.commit()
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.INFO.value,
-                action="DELETE STUDENT SUCCCESS",
-                details=f"Student: {student.name}, ID: {student.id} deleted",
-                created_by=authorized_user.id,
-                payload={
-                    "payload_data": student_id
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.INFO.value,
+            #     action="DELETE STUDENT SUCCCESS",
+            #     details=f"Student: {student.name}, ID: {student.id} deleted",
+            #     created_by=authorized_user.id,
+            #     payload={
+            #         "payload_data": student_id
+            #     }
+            # )
 
             return {"message": f"{student.name} student deleted successfully"}
         except IntegrityError as e:
@@ -312,17 +292,17 @@ class StudentService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log_isolated(
-                request=request, level=LogLevel.ERROR.value,
-                action="DELETE STUDENT ERROR",
-                details=f"Student deletion failed. Error: {readable_error}",
-                created_by=getattr(authorized_user, "id", None),
-                payload={
-                    "error": readable_error,
-                    "raw_error": error_msg,
-                    "payload_data": student_id
-                }
-            )
+            # await create_audit_log_isolated(
+            #     request=request, level=LogLevel.ERROR.value,
+            #     action="DELETE STUDENT ERROR",
+            #     details=f"Student deletion failed. Error: {readable_error}",
+            #     created_by=getattr(authorized_user, "id", None),
+            #     payload={
+            #         "error": readable_error,
+            #         "raw_error": error_msg,
+            #         "payload_data": student_id
+            #     }
+            # )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)

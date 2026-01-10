@@ -38,6 +38,7 @@ async def register_user(
 async def get_logged_in_user(
         # token_injection: None = Depends(inject_token),
         current_user: UserOutSchema = Depends(get_current_user)):
+    logger.success("User logged in successfully")
     return current_user
 
 
