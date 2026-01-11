@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, Request, BackgroundTasks, status
+from fastapi import APIRouter, Depends, HTTPException, Response, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,8 +6,8 @@ from app.core.exceptions import DomainIntegrityError
 from app.services.user_login_logout import login_user, logout_user
 from app.db.db import get_db_session
 
-# login router
 
+# login router
 router = APIRouter(prefix='/auth', tags=['login'])
 
 

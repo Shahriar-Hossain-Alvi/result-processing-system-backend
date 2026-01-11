@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models import User
-from app.models.audit_log_model import LogLevel
 from app.models.student_model import Student
 from app.models.teacher_model import Teacher
 from app.schemas.user_schema import UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin, UserUpdateSchemaByUser
