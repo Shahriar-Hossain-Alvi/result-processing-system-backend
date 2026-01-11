@@ -9,7 +9,6 @@ from app.core.integrity_error_parser import parse_integrity_error
 from app.models import User
 from app.core import settings
 from app.models.audit_log_model import LogLevel
-from app.services.audit_logging_service import create_audit_log
 from sqlalchemy.exc import IntegrityError
 
 

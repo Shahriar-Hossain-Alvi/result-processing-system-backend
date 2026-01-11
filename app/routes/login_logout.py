@@ -4,7 +4,6 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
 from app.models.audit_log_model import LogLevel
-from app.services.audit_logging_service import create_audit_log
 from app.services.user_login_logout import login_user, logout_user
 from app.db.db import get_db_session
 from app.utils.token_injector import inject_token

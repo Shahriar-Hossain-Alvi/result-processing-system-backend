@@ -41,7 +41,7 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Could not validate credentials")
 
-    # ✅ attach user_id to request.state
+    # attach user_id to request.state
     request.state.user_id = user.id
 
     return user

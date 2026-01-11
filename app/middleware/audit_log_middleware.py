@@ -7,6 +7,9 @@ from app.db.sync_db import SyncSessionLocal
 
 class AuditMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         # Go to router -> service functions and get response. After that, save log
         response = await call_next(request)
 
@@ -23,8 +26,12 @@ class AuditMiddleware(BaseHTTPMiddleware):
         else:
             level = level_from_status(status)
 
+        # attach payload from service functions integrity error, routers exceptions
         payload = getattr(request.state, "audit_payload", None)
+        # user_id is attached from get_current_user
         user_id = getattr(request.state, "user_id", None)
+
+        # action is attached from router before the try block
         action = getattr(
             request.state, "action",
             f"{request.method} {request.url.path}"
