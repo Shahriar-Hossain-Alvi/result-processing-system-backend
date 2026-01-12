@@ -1,6 +1,8 @@
+from typing import Any
 from fastapi import HTTPException, Request, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models import Semester
 from app.schemas.semester_schema import SemesterCreateSchema, SemesterUpdateSchema
@@ -14,9 +16,8 @@ class SemesterService:
     @staticmethod
     async def create_semester(
         semester_data: SemesterCreateSchema,
-        request: Request,
         db: AsyncSession,
-        authorized_user: UserOutSchema
+        request: Request | None = None,
     ):
         statement = select(Semester).where(
             or_(
@@ -39,46 +40,36 @@ class SemesterService:
             await db.refresh(new_semester)
             logger.success("New Semester created successfully")
 
-            # await create_audit_log_isolated(
-            #     request=request, level=LogLevel.INFO.value,
-            #     action="CREATE SEMESTER SUCCCESS",
-            #     details=f"Semester: {new_semester.semester_name}, ID: {new_semester.id} created",
-            #     created_by=authorized_user.id,
-            #     payload={
-            #         "payload_data": semester_data.model_dump()
-            #     }
-            # )
-
             return {
                 "message": f"New Semester created successfully. ID: {new_semester.id}"
             }
         except IntegrityError as e:
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state to save the Audit Log
             await db.rollback()
+
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
+
             logger.error(f"Integrity error while creating new Semester: {e}")
+            logger.error(f"Readable Error: {readable_error}")
 
-            # generally the PostgreSQL's error message will be in e.orig.args[0]
-            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
-                e)
+            # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
 
-            # send the error message to the parser
-            readable_error = parse_integrity_error(error_msg)
-            logger.error(
-                f"Integrity error while creating new Semester: {readable_error}")
+                if semester_data:
+                    payload["data"] = semester_data.model_dump(
+                        mode="json")
 
-            # await create_audit_log_isolated(
-            #     request=request, level=LogLevel.ERROR.value,
-            #     action="CREATE SEMESTER ERROR",
-            #     details=f"Semester creation failed. Error: {readable_error}",
-            #     created_by=getattr(authorized_user, "id", None),
-            #     payload={
-            #         "error": readable_error,
-            #         "raw_error": error_msg,
-            #         "payload_data": semester_data.model_dump()
-            #     }
-            # )
+                request.state.audit_payload = payload
 
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
 
     @staticmethod
     async def get_semesters(db: AsyncSession):
@@ -98,9 +89,8 @@ class SemesterService:
     async def update_semester(
         semester_id: int,
         semester_update_data: SemesterUpdateSchema,
-        request: Request,
         db: AsyncSession,
-        authorized_user: UserOutSchema
+        request: Request | None = None
     ):
         statement = select(Semester).where(Semester.id == semester_id)
         result = await db.execute(statement)
@@ -121,52 +111,44 @@ class SemesterService:
             await db.refresh(semester)
             logger.success("Semester updated successfully")
 
-            # await create_audit_log_isolated(
-            #     request=request, level=LogLevel.INFO.value,
-            #     action="UPDATE SEMESTER SUCCCESS",
-            #     details=f"Semester: {semester.semester_name} updated",
-            #     created_by=authorized_user.id,
-            #     payload={
-            #         "payload_data": semester_update_data.model_dump(exclude_unset=True)
-            #     }
-            # )
-
             return {
                 "message": f"Semester updated successfully. ID: {semester.id}"
             }
         except IntegrityError as e:
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state.
             await db.rollback()
+
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
+
             logger.error(f"Integrity error while updating semester: {e}")
-            # generally the PostgreSQL's error message will be in e.orig.args[0]
-            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
-                e)
+            logger.error(f"Readable Error: {readable_error}")
 
-            # send the error message to the parser
-            readable_error = parse_integrity_error(error_msg)
-            logger.error(
-                f"Integrity error while updating semester: {readable_error}")
+            # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
 
-            # await create_audit_log_isolated(
-            #     request=request, level=LogLevel.ERROR.value,
-            #     action="UPDATE SEMESTER ERROR",
-            #     details=f"Semester update failed. Error: {readable_error}",
-            #     created_by=getattr(authorized_user, "id", None),
-            #     payload={
-            #         "error": readable_error,
-            #         "raw_error": error_msg,
-            #         "payload_data": semester_update_data.model_dump()
-            #     }
-            # )
+                if semester_update_data:
+                    payload["data"] = semester_update_data.model_dump(
+                        mode="json",
+                        exclude_unset=True,
+                    )
 
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
+                request.state.audit_payload = payload
+
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
 
     @staticmethod
     async def delete_semester(
         semester_id: int,
-        request: Request,
         db: AsyncSession,
-        authorized_user: UserOutSchema
+        request: Request | None = None,
     ):
         statement = select(Semester).where(Semester.id == semester_id)
         result = await db.execute(statement)
@@ -180,37 +162,27 @@ class SemesterService:
             await db.commit()
             logger.success("Semester deleted successfully")
 
-            # await create_audit_log_isolated(
-            #     request=request, level=LogLevel.INFO.value,
-            #     action="DELETE SEMESTER SUCCCESS",
-            #     details=f"Semester: {semester.semester_name}, ID: {semester.id} deleted",
-            #     created_by=authorized_user.id,
-            #     payload={
-            #         "payload_data": semester_id
-            #     }
-            # )
-
             return {"message": f"{semester.semester_name} semester deleted successfully"}
         except IntegrityError as e:
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state
             await db.rollback()
-            # generally the PostgreSQL's error message will be in e.orig.args[0]
-            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
-                e)
 
-            # send the error message to the parser
-            readable_error = parse_integrity_error(error_msg)
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
 
-            # await create_audit_log_isolated(
-            #     request=request, level=LogLevel.ERROR.value,
-            #     action="DELETE SEMESTER ERROR",
-            #     details=f"Semester deletion failed. Error: {readable_error}",
-            #     created_by=getattr(authorized_user, "id", None),
-            #     payload={
-            #         "error": readable_error,
-            #         "raw_error": error_msg,
-            #         "payload_data": semester_id
-            #     }
-            # )
+            logger.error(f"Integrity error while deleting semester: {e}")
+            logger.error(f"Readable Error: {readable_error}")
 
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
+            # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
+
+                request.state.audit_payload = payload
+
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
