@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.authenticated_user import get_current_user
-from app.permissions.role_checks import ensure_admin, ensure_admin_or_teacher
+from app.core.exceptions import DomainIntegrityError
+from app.permissions.role_checks import ensure_admin, ensure_admin_or_teacher, ensure_super_admin
 from app.services.subject_service import SubjectService
 from app.db.db import get_db_session
 from app.schemas.subject_schema import SubjectCreateSchema, SubjectOutSchema
 from app.schemas.user_schema import UserOutSchema
-from app.utils.token_injector import inject_token
 
 
 router = APIRouter(
@@ -18,23 +19,38 @@ router = APIRouter(
 @router.post("/")
 async def create_new_subject(
     subject_data: SubjectCreateSchema,
-    # token_injection: None = Depends(inject_token),
-    authorized_user: UserOutSchema = Depends(ensure_admin),
+    request: Request,
     db: AsyncSession = Depends(get_db_session),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
+    # attach action
+    request.state.action = "CREATE SUBJECT"
+
     try:
-        return await SubjectService.create_subject(db, subject_data)
+        return await SubjectService.create_subject(subject_data, db, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
     except HTTPException:
         raise
     except Exception as e:
+        logger.critical(f"Create subject Unexpected Error: {e}")
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
 # get all subjects
 @router.get("/", response_model=list[SubjectOutSchema])
 async def get_all_subjects(
-        # token_injection: None = Depends(inject_token),
         current_user: UserOutSchema = Depends(get_current_user),
         db: AsyncSession = Depends(get_db_session)
 ):
@@ -43,15 +59,16 @@ async def get_all_subjects(
     except HTTPException:
         raise
     except Exception as e:
+        logger.critical(f"Get all subject Unexpected Error: {e}")
+
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
 # get single subject
 @router.get("/{id}", response_model=SubjectOutSchema)
 async def get_single_subject(
         id: int,
-        # token_injection: None = Depends(inject_token),
         current_user: UserOutSchema = Depends(get_current_user),
         db: AsyncSession = Depends(get_db_session)):
     try:
@@ -59,15 +76,16 @@ async def get_single_subject(
     except HTTPException:
         raise
     except Exception as e:
+        logger.critical(f"Get single subject Unexpected Error: {e}")
+
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
 # get subject by code
 @router.get("/subject/{code}", response_model=SubjectOutSchema)
 async def get_single_subject_by_code(
     subject_code: str,
-    # token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session)
 ):
@@ -76,8 +94,10 @@ async def get_single_subject_by_code(
     except HTTPException:
         raise
     except Exception as e:
+        logger.critical(f"Get subject by code Unexpected Error: {e}")
+
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 # delete subject
 
@@ -85,15 +105,28 @@ async def get_single_subject_by_code(
 @router.delete("/{id}")
 async def delete_single_subject(
     id: int,
+    request: Request,
     db: AsyncSession = Depends(get_db_session),
-    # token_injection: None = Depends(inject_token),
-    authorized_user: UserOutSchema = Depends(ensure_admin)
+    authorized_user: UserOutSchema = Depends(ensure_super_admin)
 ):
+    # attach action
+    request.state.action = "DELETE SUBJECT"
 
     try:
-        return await SubjectService.delete_subject(db, id)
+        return await SubjectService.delete_subject(id, db, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
     except HTTPException:
         raise
     except Exception as e:
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
