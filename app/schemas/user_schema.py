@@ -24,7 +24,7 @@ class UserUpdateSchemaByAdmin(BaseModel):
     mobile_number: str | None = None
 
 
-class UserUpdateSchemaByUser(BaseModel):
+class UserPasswordUpdateSchema(BaseModel):
     password: str
 
 

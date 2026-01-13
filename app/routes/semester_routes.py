@@ -1,14 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.authenticated_user import get_current_user
 from app.core.exceptions import DomainIntegrityError
 from app.permissions.role_checks import ensure_admin, ensure_super_admin
 from app.services.semester_service import SemesterService
 from app.db.db import get_db_session
 from app.schemas.semester_schema import SemesterCreateSchema, SemesterOutSchema, SemesterUpdateSchema
 from app.schemas.user_schema import UserOutSchema
-from app.utils.token_injector import inject_token
 
 
 router = APIRouter(

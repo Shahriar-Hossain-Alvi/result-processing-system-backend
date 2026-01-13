@@ -49,7 +49,6 @@ source venv/bin/activate    # for linux
 ```
 pip install -r requirements.txt
 ```
-
 ---
 
 # 🐳 Run the Backend with Docker

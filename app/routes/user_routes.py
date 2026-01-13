@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import get_current_user
+from app.core.exceptions import DomainIntegrityError
 from app.permissions.role_checks import ensure_admin, ensure_super_admin
 from app.services.user_service import UserService
 from app.db.db import get_db_session
-from app.schemas.user_schema import AllUsersWithDetailsResponseSchema, UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin, UserUpdateSchemaByUser
+from app.schemas.user_schema import AllUsersWithDetailsResponseSchema, UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin, UserPasswordUpdateSchema
 
 
 router = APIRouter(
@@ -20,23 +21,35 @@ async def register_user(
     user_data: UserCreateSchema,
     request: Request,
     db: AsyncSession = Depends(get_db_session),
-    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
+    # attach action
+    request.state.action = "CREATE USER BY ADMIN"
 
     try:
-        return await UserService.create_user(user_data, request, db, authorized_user)
+        return await UserService.create_user(user_data, db, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(e)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.critical(f"User creation unexpected error: {e}")
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 # get logged in user
 @router.get("/me", response_model=UserOutSchema)
 async def get_logged_in_user(
-        # token_injection: None = Depends(inject_token),
         current_user: UserOutSchema = Depends(get_current_user)):
     logger.success("User logged in successfully")
     return current_user
@@ -47,7 +60,6 @@ async def get_logged_in_user(
 async def get_all_users(
     user_role: str | None = None,
     db: AsyncSession = Depends(get_db_session),
-    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(
         ensure_admin)
 ):
@@ -63,9 +75,7 @@ async def get_all_users(
 @router.get("/{id}", response_model=AllUsersWithDetailsResponseSchema)
 async def get_single_user(
     id: int,
-    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
-    # current_user: UserOutSchema = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session)
 ):
     try:
@@ -86,32 +96,65 @@ async def update_single_user_by_admin(
     db: AsyncSession = Depends(get_db_session),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
+    # attach action
+    request.state.action = "UPDATE USER BY ADMIN"
+
     try:
-        return await UserService.update_user_by_admin(id, user_data, request, db, authorized_user)
+        return await UserService.update_user_by_admin(id, user_data, db, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        logger.critical(f"User update by admin unexpected error: {e}")
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 # update single user by self(password update)
-@router.patch("/updatePassword/{id}", response_model=UserOutSchema)
+@router.patch("/updatePassword/{id}")
 async def update_single_user_by_self(
     id: int,
-    user_data: UserUpdateSchemaByUser,
+    user_data: UserPasswordUpdateSchema,
     request: Request,
     db: AsyncSession = Depends(get_db_session),
-    # token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
 ):
+    # attach action
+    request.state.action = "UPDATE USER PASSWORD(self)"
+
+    if id != current_user.id:
+        raise HTTPException(
+            status_code=400, detail="You are not authorized to update this record.")
+
     try:
-        return await UserService.update_user_self(id, user_data, request, db, current_user)
+        return await UserService.update_user_self(id, user_data, db, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        logger.critical(f"User password update(self) unexpected error: {e}")
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 # delete single user
@@ -119,14 +162,28 @@ async def update_single_user_by_self(
 async def delete_a_user(
     id: int,
     request: Request,
-    # token_injection: None = Depends(inject_token),
     db: AsyncSession = Depends(get_db_session),
-    authorized_user: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_super_admin),
 ):
+    # attach action
+    request.state.action = "DELETE USER"
+
     try:
-        return await UserService.delete_user(id, request, db, authorized_user)
+        return await UserService.delete_user(id, db, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        logger.critical(f"User delete unexpected error: {e}")
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+        raise HTTPException(status_code=500, detail="Internal Server Error")

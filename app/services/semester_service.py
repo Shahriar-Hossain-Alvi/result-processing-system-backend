@@ -8,7 +8,6 @@ from app.models import Semester
 from app.schemas.semester_schema import SemesterCreateSchema, SemesterUpdateSchema
 from sqlalchemy import select, or_
 from sqlalchemy.exc import IntegrityError
-from app.schemas.user_schema import UserOutSchema
 
 
 class SemesterService:
