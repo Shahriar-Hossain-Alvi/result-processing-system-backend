@@ -26,7 +26,7 @@ async def login_user(
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invalid credentials. Please check your credentials.")
 
     try:
         # verify password
@@ -34,7 +34,12 @@ async def login_user(
 
         if not is_valid:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials. Please check your credentials.")
+
+        # deny login if account status is inactive
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is Deactivated. Please contact admin.")
 
         # after validating the user, create access token
         access_token = create_access_token(user.username)

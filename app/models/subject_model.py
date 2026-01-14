@@ -12,7 +12,7 @@ class Subject(Base, TimestampMixin):
     subject_title: Mapped[str] = mapped_column(String(100), nullable=False)
 
     subject_code: Mapped[str] = mapped_column(
-        String(50), nullable=False, unique=True)
+        String(20), nullable=False, unique=True, index=True)
 
     credits: Mapped[Float] = mapped_column(Float, nullable=False)
 
