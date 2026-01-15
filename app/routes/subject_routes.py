@@ -53,10 +53,14 @@ async def create_new_subject(
 @router.get("/", response_model=list[SubjectWithSemesterResponseSchema])
 async def get_all_subjects(
         current_user: UserOutSchema = Depends(get_current_user),
-        db: AsyncSession = Depends(get_db_session)
+        db: AsyncSession = Depends(get_db_session),
+        subject_credits: float | None = None,
+        semester_id: int | None = None,
+        search: str | None = None
 ):
+
     try:
-        return await SubjectService.get_subjects(db)
+        return await SubjectService.get_subjects(db, subject_credits, semester_id, search)
     except HTTPException:
         raise
     except Exception as e:

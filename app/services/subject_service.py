@@ -1,7 +1,7 @@
 from typing import Any
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import and_, select
+from sqlalchemy import and_, select, or_
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models.subject_model import Subject
@@ -78,10 +78,33 @@ class SubjectService:
         return subject
 
     @staticmethod
-    async def get_subjects(db: AsyncSession):
-        query = select(Subject).options(
-            selectinload(Subject.semester)
-        ).order_by(Subject.id)
+    async def get_subjects(
+        db: AsyncSession,
+        subject_credits: float | None = None,
+        semester_id: int | None = None,
+        search: str | None = None
+    ):
+        # TODO: add filter by credits, semester, subject code(letter part), search by subject title
+        query = select(Subject).options(selectinload(
+            Subject.semester)).order_by(Subject.id)
+
+        # Search by credits
+        if subject_credits is not None:
+            query = query.where(Subject.credits == subject_credits)
+
+        # Select Filter
+        if semester_id is not None:
+            query = query.where(Subject.semester_id == semester_id)
+
+        # Search by subject title or code
+        if search:
+            search_filter = f"%{search}%"  # TODO: need explaination
+            query = query.where(
+                or_(
+                    Subject.subject_title.ilike(search_filter),
+                    Subject.subject_code.ilike(search_filter)
+                )
+            )
 
         result = await db.execute(query)
         subjects = result.scalars().unique().all()
