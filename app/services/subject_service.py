@@ -84,7 +84,6 @@ class SubjectService:
         semester_id: int | None = None,
         search: str | None = None
     ):
-        # TODO: add filter by credits, semester, subject code(letter part), search by subject title
         query = select(Subject).options(selectinload(
             Subject.semester)).order_by(Subject.id)
 
@@ -206,17 +205,17 @@ class SubjectService:
                 error_message=readable_error, raw_error=raw_error_message
             )
 
-    @staticmethod
-    async def get_subject_by_code(
-            db: AsyncSession,
-            subject_code: str
-    ):
-        capitalized_subject_code = subject_code.upper().strip()
+    # @staticmethod
+    # async def get_subject_by_code(
+    #         db: AsyncSession,
+    #         subject_code: str
+    # ):
+    #     capitalized_subject_code = subject_code.upper().strip()
 
-        subject = await db.scalar(select(Subject).where(Subject.subject_code == capitalized_subject_code))
+    #     subject = await db.scalar(select(Subject).where(Subject.subject_code == capitalized_subject_code))
 
-        if not subject:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Subject not found")
+    #     if not subject:
+    #         raise HTTPException(
+    #             status_code=status.HTTP_404_NOT_FOUND, detail="Subject not found")
 
-        return subject
+    #     return subject

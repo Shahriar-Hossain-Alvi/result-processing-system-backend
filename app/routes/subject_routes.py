@@ -88,21 +88,21 @@ async def get_single_subject(
 
 
 # get subject by code
-@router.get("/subject/{code}")
-async def get_single_subject_by_code(
-    subject_code: str,
-    current_user: UserOutSchema = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
-):
-    try:
-        return await SubjectService.get_subject_by_code(db, subject_code)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.critical(f"Get subject by code Unexpected Error: {e}")
+# @router.get("/subject/{code}")
+# async def get_single_subject_by_code(
+#     subject_code: str,
+#     current_user: UserOutSchema = Depends(get_current_user),
+#     db: AsyncSession = Depends(get_db_session)
+# ):
+#     try:
+#         return await SubjectService.get_subject_by_code(db, subject_code)
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.critical(f"Get subject by code Unexpected Error: {e}")
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
 # update subject by admin
@@ -137,9 +137,8 @@ async def update_subject_by_admin(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
+
 # delete subject
-
-
 @router.delete("/{id}")
 async def delete_single_subject(
     id: int,
