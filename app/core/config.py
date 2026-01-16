@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str = "HS256"  # hash algorithm for jwt
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 180
+    CLOUDINARY_CLOUD_NAME: str
+    CLOUDINARY_API_KEY: str
+    CLOUDINARY_API_SECRET: str
 
     # Another Approach => directly get the env variables and if not found use the default values
     # DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db/postgres")

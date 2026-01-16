@@ -15,9 +15,8 @@ router = APIRouter(
     tags=["departments"]  # for swagger
 )
 
-# create department
 
-
+# create department: used in Departments & Semester page to create department
 @router.post("/")
 async def create_new_department(
     department_data: DepartmentCreateSchema,
@@ -50,7 +49,7 @@ async def create_new_department(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-# get all departments
+# get all departments: used in Departments & Semester page to get all departments
 @router.get("/", response_model=list[DepartmentOutSchema])
 async def get_all_departments(
     current_user: UserOutSchema = Depends(get_current_user),
@@ -66,22 +65,22 @@ async def get_all_departments(
 
 
 # get single department
-@router.get("/{id}", response_model=DepartmentOutSchema)
-async def get_single_department(
-    id: int,
-    db: AsyncSession = Depends(get_db_session),
-    current_user: UserOutSchema = Depends(get_current_user)
-):
+# @router.get("/{id}", response_model=DepartmentOutSchema)
+# async def get_single_department(
+#     id: int,
+#     db: AsyncSession = Depends(get_db_session),
+#     current_user: UserOutSchema = Depends(get_current_user)
+# ):
 
-    try:
-        return await DepartmentService.get_department(db, id)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+#     try:
+#         return await DepartmentService.get_department(db, id)
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
-# update a department
+# update a department: used in Departments & Semester page to update department
 @router.patch("/{id}")
 async def update_single_department(
     id: int,

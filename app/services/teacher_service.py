@@ -13,6 +13,7 @@ from app.utils import check_existence
 from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
+from app.utils import delete_image_from_cloudinary
 from app.utils.mask_sensitive_data import sanitize_payload
 
 
@@ -153,6 +154,15 @@ class TeacherService:
             updated_teacher_data = teacher_update_data.model_dump(
                 exclude_unset=True)
 
+            if "photo_public_id" in updated_teacher_data:
+                new_public_id = updated_teacher_data["photo_public_id"]
+                old_public_id = teacher.photo_public_id
+
+                if old_public_id and old_public_id != new_public_id:
+                    await delete_image_from_cloudinary(old_public_id)
+                    logger.success(
+                        "Old teacher profile picture deleted from Cloudinary")
+
             for key, value in updated_teacher_data.items():
                 setattr(teacher, key, value)
 
@@ -208,7 +218,7 @@ class TeacherService:
         if not teacher:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
-
+        # TODO: When a teacher is updating their profile picture, delete the old one from Cloudinary using the photo public_id
         try:
             updated_teacher_data = teacher_update_data.model_dump(
                 exclude_unset=True)

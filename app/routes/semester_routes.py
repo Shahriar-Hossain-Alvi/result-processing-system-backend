@@ -14,9 +14,8 @@ router = APIRouter(
     tags=["semesters"]  # for swagger
 )
 
-# create semester
 
-
+# create semester: used in Departments & Semester page to create semester
 @router.post("/")
 async def add__new_semester(
     semester_data: SemesterCreateSchema,
@@ -50,7 +49,7 @@ async def add__new_semester(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-# get all semester
+# get all semester: used in Departments & Semester page to get all semester
 @router.get("/", response_model=list[SemesterOutSchema])
 async def get_all_semesters(db: AsyncSession = Depends(get_db_session)):
     try:
@@ -62,17 +61,17 @@ async def get_all_semesters(db: AsyncSession = Depends(get_db_session)):
 
 
 # get single semester
-@router.get("/{id}", response_model=SemesterOutSchema)
-async def get_single_semester(id: int, db: AsyncSession = Depends(get_db_session)):
-    try:
-        return await SemesterService.get_semester(db, id)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @router.get("/{id}", response_model=SemesterOutSchema)
+# async def get_single_semester(id: int, db: AsyncSession = Depends(get_db_session)):
+#     try:
+#         return await SemesterService.get_semester(db, id)
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
-# update a semester
+# update a semester: used in Departments & Semester page to update semester
 @router.patch("/{id}")
 async def update_single_semester(
     id: int,
@@ -105,7 +104,7 @@ async def update_single_semester(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-# delete a semester
+# delete a semester: used in Departments & Semester page to delete semester by super admin
 @router.delete("/{id}")
 async def delete_single_semester(
     id: int,

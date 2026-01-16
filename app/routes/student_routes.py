@@ -15,7 +15,7 @@ router = APIRouter(
 )
 
 
-# create student record
+# create student record: used in Add User page to create student (User table + Student table data)
 @router.post("/")
 async def create_student_record(
         student_data: StudentCreateSchema,
@@ -57,83 +57,82 @@ async def create_student_record(
 
 
 # get all students
-@router.get(
-    "/",
-    response_model=list[StudentResponseSchemaNested]
-)
-async def get_all_students(
-    authorized_user: UserOutSchema = Depends(
-        ensure_roles(["super_admin", "admin", "teacher"])),
-    db: AsyncSession = Depends(get_db_session),
-):
-
-    try:
-        return await StudentService.get_students(db)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+# @router.get(
+#     "/",
+#     response_model=list[StudentResponseSchemaNested]
+# )
+# async def get_all_students(
+#     authorized_user: UserOutSchema = Depends(
+#         ensure_roles(["super_admin", "admin", "teacher"])),
+#     db: AsyncSession = Depends(get_db_session),
+# ):
+#     try:
+#         return await StudentService.get_students(db)
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error(f"Unexpected Error: {e}")
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 # get single student
-@router.get("/{id}", response_model=StudentResponseSchemaNested)
-async def get_single_student(
-    id: int,
-    db: AsyncSession = Depends(get_db_session),
-    current_user: UserOutSchema = Depends(get_current_user),
-):
-    try:
-        return await StudentService.get_student(db, id)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+# @router.get("/{id}", response_model=StudentResponseSchemaNested)
+# async def get_single_student(
+#     id: int,
+#     db: AsyncSession = Depends(get_db_session),
+#     current_user: UserOutSchema = Depends(get_current_user),
+# ):
+#     try:
+#         return await StudentService.get_student(db, id)
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error(f"Unexpected Error: {e}")
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 # update a student (self)
-@router.patch("/{id}")
-async def update_single_student(
-    id: int,
-    student_data: StudentUpdateSchema,
-    request: Request,
-    current_user: UserOutSchema = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session),
-):
-    # attach action
-    request.state.action = "UPDATE STUDENT BY SELF"
+# @router.patch("/{id}")
+# async def update_single_student(
+#     id: int,
+#     student_data: StudentUpdateSchema,
+#     request: Request,
+#     current_user: UserOutSchema = Depends(get_current_user),
+#     db: AsyncSession = Depends(get_db_session),
+# ):
+#     # attach action
+#     request.state.action = "UPDATE STUDENT BY SELF"
 
-    if current_user.id != id:
-        raise HTTPException(
-            status_code=400, detail="You are not authorized to update this record.")
+#     if current_user.id != id:
+#         raise HTTPException(
+#             status_code=400, detail="You are not authorized to update this record.")
 
-    try:
-        return await StudentService.update_student(id, student_data, db, request)
-    except DomainIntegrityError as de:
-        # DB Log
-        logger.error(f"Student update failed FROM ROUTER: {de}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=de.error_message
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        if request:
-            request.state.audit_payload = {
-                "raw_error": str(e),
-                "exception_type": type(e).__name__,
-            }
+#     try:
+#         return await StudentService.update_student(id, student_data, db, request)
+#     except DomainIntegrityError as de:
+#         # DB Log
+#         logger.error(f"Student update failed FROM ROUTER: {de}")
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail=de.error_message
+#         )
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error(f"Unexpected Error: {e}")
+#         if request:
+#             request.state.audit_payload = {
+#                 "raw_error": str(e),
+#                 "exception_type": type(e).__name__,
+#             }
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-# update a student by admin
+# update a student by admin: Used in SingleUserDetails page to update studemt tables data by admin
 @router.patch("/updateByAdmin/{id}")
 async def update_single_student_by_admin(
     id: int,
@@ -165,40 +164,40 @@ async def update_single_student_by_admin(
                 "exception_type": type(e).__name__,
             }
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
 # delete a student
-@router.delete("/{id}")
-async def delete_single_student(
-    id: int,
-    request: Request,
-    db: AsyncSession = Depends(get_db_session),
-    authorized_user: UserOutSchema = Depends(ensure_roles(["super_admin"]))
-):
-    # attach action
-    request.state.action = "DELETE STUDENT"
+# @router.delete("/{id}")
+# async def delete_single_student(
+#     id: int,
+#     request: Request,
+#     db: AsyncSession = Depends(get_db_session),
+#     authorized_user: UserOutSchema = Depends(ensure_roles(["super_admin"]))
+# ):
+#     # attach action
+#     request.state.action = "DELETE STUDENT"
 
-    try:
-        return await StudentService.delete_student(id, db, request)
-    except DomainIntegrityError as de:
-        # DB Log
-        logger.error(f"Student deletion failed FROM ROUTER: {de}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=de.error_message
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
+#     try:
+#         return await StudentService.delete_student(id, db, request)
+#     except DomainIntegrityError as de:
+#         # DB Log
+#         logger.error(f"Student deletion failed FROM ROUTER: {de}")
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail=de.error_message
+#         )
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error(f"Unexpected Error: {e}")
 
-        # attach audit payload
-        if request:
-            request.state.audit_payload = {
-                "raw_error": str(e),
-                "exception_type": type(e).__name__,
-            }
+#         # attach audit payload
+#         if request:
+#             request.state.audit_payload = {
+#                 "raw_error": str(e),
+#                 "exception_type": type(e).__name__,
+#             }
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

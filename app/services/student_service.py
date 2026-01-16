@@ -14,6 +14,7 @@ from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
 from app.utils import check_existence
+from app.utils import delete_image_from_cloudinary
 from app.utils.mask_sensitive_data import sanitize_payload
 
 
@@ -144,7 +145,7 @@ class StudentService:
             request: Request | None = None,
     ):
         # check for existing student
-        student = await db.scalar(select(Student).where(Student.id == student_id))
+        student = await check_existence(Student, db, student_id, "Student")
 
         if not student:
             raise HTTPException(
@@ -153,6 +154,15 @@ class StudentService:
         try:
             updated_student_data = student_update_data.model_dump(
                 exclude_unset=True)  # convert to dictionary
+
+            if "photo_public_id" in updated_student_data:
+                new_public_id = updated_student_data["photo_public_id"]
+                old_public_id = student.photo_public_id
+
+                if old_public_id and old_public_id != new_public_id:
+                    await delete_image_from_cloudinary(old_public_id)
+                    logger.success(
+                        "Old studet profile picture deleted from Cloudinary")
 
             for key, value in updated_student_data.items():
                 # apply the updated data in the student object(from DB)
@@ -203,7 +213,7 @@ class StudentService:
     ):
         # check for existing student
         student = await db.scalar(select(Student).where(Student.id == student_id))
-
+        # TODO: When a student is updating their profile picture, delete the old one from Cloudinary using the photo public_id
         if not student:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
