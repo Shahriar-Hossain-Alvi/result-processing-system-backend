@@ -1,6 +1,6 @@
 from typing import Any
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
@@ -136,6 +136,57 @@ class TeacherService:
         result = all_teachers.all()
 
         return result
+
+    # Get all teacher with minimal data for course allocation (Subject Offering)
+    @staticmethod
+    async def get_all_teachers_with_minimal_data(
+        db: AsyncSession,
+        search: str | None = None,
+        request: Request | None = None
+    ):
+        try:
+            query = select(Teacher).options(
+                selectinload(Teacher.department)
+            ).order_by(Teacher.name)
+
+            if search:
+                query = query.where(
+                    or_(
+                        Teacher.name.ilike(f"%{search}%"),
+                        Teacher.department.has(
+                            Department.department_name.ilike(f"%{search}%"))
+                    )
+                )
+
+            result = await db.execute(query)
+            all_teachers = result.scalars().unique().all()
+
+            return all_teachers
+
+        except IntegrityError as e:
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state to save the Audit Log
+            await db.rollback()
+
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
+
+            logger.error(
+                f"Integrity error while fetching all teacher with minimal data: {e}")
+            logger.error(f"Readable Error: {readable_error}")
+
+            # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
+
+                request.state.audit_payload = payload
+
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
 
     @staticmethod
     async def update_teacher_by_admin(

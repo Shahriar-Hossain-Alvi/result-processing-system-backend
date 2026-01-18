@@ -27,6 +27,32 @@ class TeacherResponseSchema(TeacherBaseSchema):
     model_config = ConfigDict(from_attributes=True)
 
 
+class DepartmentDataForMinimalTeacher(BaseModel):
+    id: int
+    department_name: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TeacherResponseSchemaForSubjectOffering(BaseModel):
+    id: int
+    name: str
+    department_id: int
+    department: DepartmentDataForMinimalTeacher
+
+    model_config = ConfigDict(from_attributes=True)
+    """
+      {
+    "name": "Dr. Ariful Islam",
+    "id": 7,
+    "department_id": 2,
+    "department": {
+      "department_name": "cse – computer science & engineering",
+      "id": 2,
+    }
+  }
+    """
+
+
 class TeacherResponseSchemaNested(TeacherResponseSchema):
     id: int
     user: UserOutSchema

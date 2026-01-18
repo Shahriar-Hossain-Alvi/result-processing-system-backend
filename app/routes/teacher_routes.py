@@ -5,7 +5,7 @@ from app.core.authenticated_user import get_current_user
 from app.core.exceptions import DomainIntegrityError
 from app.permissions import ensure_roles
 from app.db.db import get_db_session
-from app.schemas.teacher_schema import TeacherCreateSchema, TeacherResponseSchema, TeacherUpdateByAdminSchema, TeacherUpdateSchema, TeachersDepartmentWiseGroupResponse
+from app.schemas.teacher_schema import TeacherCreateSchema, TeacherResponseSchema, TeacherResponseSchemaForSubjectOffering, TeacherUpdateByAdminSchema, TeacherUpdateSchema, TeachersDepartmentWiseGroupResponse
 from app.schemas.user_schema import UserOutSchema
 from app.services.teacher_service import TeacherService
 
@@ -44,7 +44,7 @@ async def create_teacher_record(
             }
 
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
 #  get all teachers
@@ -62,6 +62,37 @@ async def create_teacher_record(
 #         raise HTTPException(
 #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
+# get all teachers with minimal data for course allocation(Subject Offering)
+@router.get("/all", response_model=list[TeacherResponseSchemaForSubjectOffering])
+async def get_all_teachers_with_minimal_data(
+    request: Request,
+    search: str | None = None,
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin"])),
+    db: AsyncSession = Depends(get_db_session)
+
+):
+    try:
+        return await TeacherService.get_all_teachers_with_minimal_data(db, search, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.critical("Create teacher unexpected Error: ", e)
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 # @router.get("/all_faculty", response_model=list[TeachersDepartmentWiseGroupResponse])
 # async def get_all_faculty(

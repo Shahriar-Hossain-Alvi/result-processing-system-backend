@@ -1,12 +1,16 @@
+from typing import Any
+from loguru import logger
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models.department_model import Department
 from app.models.subject_model import Subject
 from app.models.subject_offerings_model import SubjectOfferings
+from app.models.teacher_model import Teacher
 from app.models.user_model import User
 from app.schemas.subject_offering_schema import SubjectOfferingCreateSchema, SubjectOfferingUpdateSchema
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 from app.schemas.user_schema import UserOutSchema
 from app.utils import check_existence
 from sqlalchemy.exc import IntegrityError
@@ -18,16 +22,15 @@ class SubjectOfferingService:
     @staticmethod
     async def create_subject_offering(
         sub_off_data: SubjectOfferingCreateSchema,
-        db: AsyncSession
+        db: AsyncSession,
+        request: Request | None = None
     ):
         # validate teacher id and role
-        teacher = await check_existence(User, db, sub_off_data.taught_by_id, "Teacher")
+        teacher = await check_existence(Teacher, db, sub_off_data.taught_by_id, "Teacher")
 
-        # teacher = await db.scalar(select(User).where(User.id == sub_off_data.taught_by_id))
-
-        if teacher.role.value != "teacher":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Not a teacher")
+        # if teacher.role.value != "teacher":
+        #     raise HTTPException(
+        #         status_code=status.HTTP_400_BAD_REQUEST, detail="Not a teacher")
 
         # validate department id
         await check_existence(Department, db, sub_off_data.department_id, "Department")
@@ -68,19 +71,39 @@ class SubjectOfferingService:
             db.add(offered_subject)
             await db.commit()
             await db.refresh(offered_subject)
-
+            logger.success("Subject offering created successfully")
             return {
                 "message": f"Subject offering created successfully. ID: {offered_subject.id}"
             }
         except IntegrityError as e:
-            # generally the PostgreSQL's error message will be in e.orig.args[0]
-            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
-                e)
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state to save the Audit Log
+            await db.rollback()
 
-            # send the error message to the parser
-            readable_error = parse_integrity_error(error_msg)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
+
+            logger.error(
+                f"Integrity error while creating new subject offering: {e}")
+            logger.error(f"Readable Error: {readable_error}")
+
+            # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
+
+                if sub_off_data:
+                    payload["data"] = sub_off_data.model_dump(
+                        mode="json"
+                    )
+
+                request.state.audit_payload = payload
+
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
 
     # get single subject offering
 

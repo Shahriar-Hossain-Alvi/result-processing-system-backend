@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.exceptions import DomainIntegrityError
 from app.db.db import get_db_session
 from app.permissions import ensure_roles
 from app.schemas.subject_offering_schema import SubjectOfferingCreateSchema, SubjectOfferingResponseSchema, SubjectOfferingUpdateSchema
@@ -17,17 +19,34 @@ router = APIRouter(
 
 @router.post("/")
 async def create_new_subject_offering(
+    request: Request,
     sub_off_data: SubjectOfferingCreateSchema,
     # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(
         ensure_roles(["super_admin", "admin"])),
     db: AsyncSession = Depends(get_db_session),
 ):
+    # attach action
+    request.state.action = "CREATE SUBJECT OFFERING"
     try:
-        return await SubjectOfferingService.create_subject_offering(sub_off_data, db)
+        return await SubjectOfferingService.create_subject_offering(sub_off_data, db, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
     except HTTPException:
         raise
     except Exception as e:
+        logger.critical(f"Create subject offering unexpected Error: {e}")
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

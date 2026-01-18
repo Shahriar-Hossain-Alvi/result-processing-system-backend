@@ -104,7 +104,7 @@ class SubjectService:
 
         # Search by subject title or code
         if search:
-            search_filter = f"%{search}%"  # TODO: need explaination
+            search_filter = f"%{search}%"
             query = query.where(
                 or_(
                     Subject.subject_title.ilike(search_filter),
