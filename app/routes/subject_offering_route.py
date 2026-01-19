@@ -139,15 +139,30 @@ async def update_a_subject_offering(
 
 @router.delete("/{subject_offering_id}")
 async def delete_a_subject_offering(
+    request: Request,
     subject_offering_id: int,
-    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_roles(["super_admin"])),
     db: AsyncSession = Depends(get_db_session)
 ):
+    # attach action
+    request.state.action = "DELETE SUBJECT OFFERING"
     try:
-        return await SubjectOfferingService.delete_subject_offering(db, subject_offering_id)
+        return await SubjectOfferingService.delete_subject_offering(db, subject_offering_id, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
     except HTTPException:
         raise
     except Exception as e:
+        logger.critical(f"Delete subject offering unexpected Error: {e}")
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")

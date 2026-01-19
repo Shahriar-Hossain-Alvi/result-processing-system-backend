@@ -61,7 +61,8 @@ class SubjectOfferingService:
         )
 
         if existing_count >= 7:
-            raise HTTPException(detail="This department already has 7 subjects in this semester.")
+            raise HTTPException(
+                detail="This department already has 7 subjects in this semester.")
         """
 
         try:
@@ -197,19 +198,49 @@ class SubjectOfferingService:
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     @staticmethod
-    async def delete_subject_offering(db: AsyncSession, subject_offering_id: int):
-        subject_offering = await db.scalar(select(SubjectOfferings).where(SubjectOfferings.id == subject_offering_id))
+    async def delete_subject_offering(
+        db: AsyncSession,
+        subject_offering_id: int,
+        request: Request | None = None
+    ):
+        try:
+            subject_offering = await db.scalar(select(SubjectOfferings).where(SubjectOfferings.id == subject_offering_id))
 
-        if not subject_offering:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Subject offering not found")
+            if not subject_offering:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Subject offering not found")
 
-        await db.delete(subject_offering)
-        await db.commit()
+            await db.delete(subject_offering)
+            await db.commit()
+            logger.success(
+                f"Subject offering deleted successfully. ID: {subject_offering.id}")
+            return {
+                "message": f"Subject offering deleted successfully. ID: {subject_offering.id}"
+            }
+        except IntegrityError as e:
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state
+            await db.rollback()
 
-        return {
-            "message": f"Subject offering deleted successfully. ID: {subject_offering.id}"
-        }
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
+
+            logger.error(
+                f"Integrity error while deleting subject offering: {e}")
+            logger.error(f"Readable Error: {readable_error}")
+
+            # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
+
+                request.state.audit_payload = payload
+
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
 
     # get offered subjects for marking
     # admin -> see all subjects for marking
