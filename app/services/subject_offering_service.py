@@ -1,6 +1,7 @@
 from typing import Any
 from loguru import logger
 from sqlalchemy import and_, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
@@ -121,9 +122,34 @@ class SubjectOfferingService:
 
     @staticmethod
     async def get_subject_offerings(db: AsyncSession):
-        subject_offerings = await db.scalars(select(SubjectOfferings))
+        try:
+            query = select(SubjectOfferings).options(
+                selectinload(SubjectOfferings.department),
+                selectinload(SubjectOfferings.subject).selectinload(
+                    Subject.semester),
+                selectinload(SubjectOfferings.taught_by).selectinload(
+                    Teacher.department)
+            )
 
-        return subject_offerings.all()
+            result = await db.execute(query)
+            subject_offerings = result.scalars().unique().all()
+
+            return subject_offerings
+        except IntegrityError as e:
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state to save the Audit Log
+            await db.rollback()
+
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
+
+            logger.error(
+                f"Integrity error while creating new subject offering: {e}")
+            logger.error(f"Readable Error: {readable_error}")
+
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
 
     # update subject offering
 

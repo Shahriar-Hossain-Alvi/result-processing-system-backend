@@ -19,9 +19,44 @@ class SubjectOfferingUpdateSchema(BaseModel):
     department_id: int | None = None
 
 
-class SubjectOfferingResponseSchema(SubjectOfferingBase):
+# Get All Subject Offerings
+class SubjectOfferingDepartmentResponseSchema(BaseModel):
+    id: int
+    department_name: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SubjectOfferingSemesterResponseSchema(BaseModel):
+    id: int
+    semester_name: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SubjectOfferingSubjectResponseSchema(BaseModel):
+    id: int
+    subject_title: str
+    subject_code: str
+    credits: float
+    is_general: bool
+    semester: SubjectOfferingSemesterResponseSchema
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SubjectOfferingTaughtByResponseSchema(BaseModel):
+    id: int
+    name: str
+    department_id: int
+    department: SubjectOfferingDepartmentResponseSchema
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AllSubjectOfferingsResponseSchema(SubjectOfferingBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    taught_by: SubjectOfferingTaughtByResponseSchema
+    department: SubjectOfferingDepartmentResponseSchema
+    subject: SubjectOfferingSubjectResponseSchema
 
     model_config = ConfigDict(from_attributes=True)
