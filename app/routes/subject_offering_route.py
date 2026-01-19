@@ -51,7 +51,40 @@ async def create_new_subject_offering(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
+@router.get("/",
+            response_model=list[AllSubjectOfferingsResponseSchema]
+            )
+async def get_all_subject_offerings(
+    request: Request,
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin"])),
+    db: AsyncSession = Depends(get_db_session)
+):
+    try:
+        return await SubjectOfferingService.get_subject_offerings(db)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.critical(f"Create subject offering unexpected Error: {e}")
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+
 # get offered subjects list for marking (Admin=All subjects, Teacher=subjects they teach)
+
+
 @router.get("/offered_subjects", response_model=list[MinimalSemesterResponseSchema])
 async def get_offered_subjects_for_marking(
     semester_id: int,
@@ -84,38 +117,6 @@ async def get_single_subject_offering(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
-
-@router.get("/",
-            response_model=list[AllSubjectOfferingsResponseSchema]
-            )
-async def get_all_subject_offerings(
-    request: Request,
-    authorized_user: UserOutSchema = Depends(
-        ensure_roles(["super_admin", "admin"])),
-    db: AsyncSession = Depends(get_db_session)
-):
-    try:
-        return await SubjectOfferingService.get_subject_offerings(db)
-    except DomainIntegrityError as de:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=de.error_message
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.critical(f"Create subject offering unexpected Error: {e}")
-
-        # attach audit payload
-        if request:
-            request.state.audit_payload = {
-                "raw_error": str(e),
-                "exception_type": type(e).__name__,
-            }
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
 @router.patch("/{subject_offering_id}")
