@@ -32,7 +32,7 @@ class UserUpdateSchemaByAdmin(BaseModel):
 #     password: str
 
 
-# used in get_logged_in_user router function
+# used in get_logged_in_user router function and authorized_user depedency, get_current_user depedency
 class UserOutSchema(UserBaseSchema):
     id: int
     created_at: datetime
