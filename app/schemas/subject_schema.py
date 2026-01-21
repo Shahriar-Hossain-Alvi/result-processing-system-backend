@@ -25,10 +25,12 @@ class SubjectBaseSchema(BaseModel):
         return v.upper()  # make the subject code uppercase
 
 
+# used in create_new_subject router function
 class SubjectCreateSchema(SubjectBaseSchema):
     pass
 
 
+# used in get_all_subjects router function
 class MinimalSemesterResponseSchema(BaseModel):
     semester_name: str
     semester_number: int
@@ -43,6 +45,7 @@ class SubjectWithSemesterResponseSchema(SubjectBaseSchema):
     model_config = ConfigDict(from_attributes=True)
 
 
+# used in update_subject_by_admin router function
 _Partial_Subject = create_partial_model(SubjectBaseSchema)
 
 

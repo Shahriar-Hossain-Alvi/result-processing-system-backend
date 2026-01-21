@@ -8,18 +8,21 @@ class SubjectOfferingBase(BaseModel):
     subject_id: int
     department_id: int
 
+#  used in create_new_subject_offering router function
+
 
 class SubjectOfferingCreateSchema(SubjectOfferingBase):
     pass
 
 
+# used in update_subject_offering router function (admin, super admin)
 class SubjectOfferingUpdateSchema(BaseModel):
     taught_by_id: int | None = None
     subject_id: int | None = None
     department_id: int | None = None
 
 
-# Get All Subject Offerings
+# Get All Subject Offerings: below schemas are used in get_all_subject_offerings router function
 class SubjectOfferingDepartmentResponseSchema(BaseModel):
     id: int
     department_name: str

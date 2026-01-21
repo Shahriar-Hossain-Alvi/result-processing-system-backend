@@ -6,18 +6,18 @@ from app.core.exceptions import DomainIntegrityError
 from app.permissions import ensure_roles
 from app.services.user_service import UserService
 from app.db.db import get_db_session
-from app.schemas.user_schema import AllUsersWithDetailsResponseSchema, UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin, UserPasswordUpdateSchema
+from app.schemas.user_schema import AllUsersWithDetailsResponseSchema, UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin
 
 
 router = APIRouter(
-    prefix="/users",  # eg: /users/register, /users/:id
+    prefix="/users",  # eg: /users/, /users/:id
     tags=["users"]  # for swagger
 )
 
 
-# user(admin) register: used in AddUser page to create admin
-@router.post("/register")
-async def register_user(
+# create admin: used in AddUser page to create admin
+@router.post("/create_admin")
+async def create_admin(
     user_data: UserCreateSchema,
     request: Request,
     db: AsyncSession = Depends(get_db_session),
@@ -93,7 +93,7 @@ async def get_single_user(
 
 
 # update single user by admin: used in singleUserDetails page to update user tables data by admin
-@router.patch("/{id}", response_model=dict[str, str])
+@router.patch("/{id}")
 async def update_single_user_by_admin(
     id: int,
     user_data: UserUpdateSchemaByAdmin,
@@ -126,6 +126,7 @@ async def update_single_user_by_admin(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
+# TODO: create profile page to update the default password
 # update single user by self(password update)
 # @router.patch("/updatePassword/{id}")
 # async def update_single_user_by_self(

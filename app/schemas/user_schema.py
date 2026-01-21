@@ -13,10 +13,13 @@ class UserBaseSchema(BaseModel):
     mobile_number: str | None = None
 
 
+# used in create_admin router function and in create student_schema, create teacher schema
 class UserCreateSchema(UserBaseSchema):
     password: str = "123456"
 
 
+# used in update_single_user_by_admin router function
+# TODO: create user profile to update these user data by self
 class UserUpdateSchemaByAdmin(BaseModel):
     email: EmailStr | None = None
     username: EmailStr | None = None
@@ -24,10 +27,12 @@ class UserUpdateSchemaByAdmin(BaseModel):
     mobile_number: str | None = None
 
 
-class UserPasswordUpdateSchema(BaseModel):
-    password: str
+# TODO: create user profile to update users default password by self
+# class UserPasswordUpdateSchema(BaseModel):
+#     password: str
 
 
+# used in get_logged_in_user router function
 class UserOutSchema(UserBaseSchema):
     id: int
     created_at: datetime
@@ -40,6 +45,7 @@ class UserOutSchema(UserBaseSchema):
     # This allows the UserOutSchema to be initialized directly from a SQLAlchemy without having to convert it to a dictionary or throw an error
 
 
+# below schemas are used in get_all_users router function for admins All User page and get_single_user router function for single user details page
 class StudentResponseSchemaToGetAllUser(BaseModel):
     id: int
     name: str

@@ -114,20 +114,17 @@ class SubjectOfferingService:
             )
 
     # get single subject offering
+    # @staticmethod
+    # async def get_subject_offering(db: AsyncSession, subject_offering_id: int):
+    #     subject_offering = await db.scalar(select(SubjectOfferings).where(SubjectOfferings.id == subject_offering_id))
 
-    @staticmethod
-    async def get_subject_offering(db: AsyncSession, subject_offering_id: int):
-        subject_offering = await db.scalar(select(SubjectOfferings).where(SubjectOfferings.id == subject_offering_id))
+    #     if not subject_offering:
+    #         raise HTTPException(
+    #             status_code=status.HTTP_404_NOT_FOUND, detail="Subject offering not found")
 
-        if not subject_offering:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Subject offering not found")
+    #     return subject_offering
 
-        return subject_offering
-
-    # get all subject offerings
-
-    @staticmethod
+    @staticmethod  # get all subject offerings in Assign Course page
     async def get_subject_offerings(
         db: AsyncSession,
         order_by_filter: str | None = None,
@@ -152,7 +149,7 @@ class SubjectOfferingService:
             query = query.where(
                 SubjectOfferings.department_id == filter_by_department)
 
-            # Search by subject title or code
+        # Search by teacher name
         if search:
             search_filter = f"%{search}%"
             query = query.where(
@@ -183,9 +180,7 @@ class SubjectOfferingService:
                 error_message=readable_error, raw_error=raw_error_message
             )
 
-    # update subject offering
-
-    @staticmethod
+    @staticmethod  # update subject offering
     async def update_subject_offering(
         subject_offering_id: int,
         update_data: SubjectOfferingUpdateSchema,
@@ -254,7 +249,7 @@ class SubjectOfferingService:
                 error_message=readable_error, raw_error=raw_error_message
             )
 
-    @staticmethod
+    @staticmethod  # delete subject offering
     async def delete_subject_offering(
         db: AsyncSession,
         subject_offering_id: int,
@@ -302,29 +297,28 @@ class SubjectOfferingService:
     # get offered subjects for marking
     # admin -> see all subjects for marking
     # teacher -> see only the subjects they teach
+    # @staticmethod
+    # async def get_offered_subjects_for_marking(
+    #     db: AsyncSession,
+    #     semester_id: int,
+    #     department_id: int,
+    #     current_user: UserOutSchema
+    # ):
+    #     stmt = select(Subject)\
+    #         .join(Subject.subject_offerings)\
+    #         .where(
+    #             and_(
+    #                 Subject.semester_id == semester_id,
+    #                 SubjectOfferings.department_id == department_id
+    #             )
+    #     )
 
-    @staticmethod
-    async def get_offered_subjects_for_marking(
-        db: AsyncSession,
-        semester_id: int,
-        department_id: int,
-        current_user: UserOutSchema
-    ):
-        stmt = select(Subject)\
-            .join(Subject.subject_offerings)\
-            .where(
-                and_(
-                    Subject.semester_id == semester_id,
-                    SubjectOfferings.department_id == department_id
-                )
-        )
+    #     # restrict subject list for teachers
+    #     if current_user.role.value == "teacher":
+    #         stmt = stmt.where(
+    #             SubjectOfferings.taught_by_id == current_user.id
+    #         )
 
-        # restrict subject list for teachers
-        if current_user.role.value == "teacher":
-            stmt = stmt.where(
-                SubjectOfferings.taught_by_id == current_user.id
-            )
-
-        result = await db.execute(stmt)
-        subjects = result.scalars().all()
-        return subjects
+    #     result = await db.execute(stmt)
+    #     subjects = result.scalars().all()
+    #     return subjects

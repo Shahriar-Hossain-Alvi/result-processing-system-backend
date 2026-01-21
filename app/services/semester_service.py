@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 class SemesterService:
 
-    @staticmethod
+    @staticmethod  # create new semester
     async def create_semester(
         semester_data: SemesterCreateSchema,
         db: AsyncSession,
@@ -70,21 +70,21 @@ class SemesterService:
                 error_message=readable_error, raw_error=raw_error_message
             )
 
-    @staticmethod
+    @staticmethod  # get all semesters
     async def get_semesters(db: AsyncSession):
         statement = select(Semester).order_by(Semester.semester_number)
         result = await db.execute(statement)
 
         return result.scalars().all()
 
-    @staticmethod
-    async def get_semester(db: AsyncSession, semester_id: int):
-        statement = select(Semester).where(Semester.id == semester_id)
-        result = await db.execute(statement)
+    # @staticmethod # get single semester
+    # async def get_semester(db: AsyncSession, semester_id: int):
+    #     statement = select(Semester).where(Semester.id == semester_id)
+    #     result = await db.execute(statement)
 
-        return result.scalar_one_or_none()
+    #     return result.scalar_one_or_none()
 
-    @staticmethod
+    @staticmethod  # update single semester
     async def update_semester(
         semester_id: int,
         semester_update_data: SemesterUpdateSchema,
@@ -143,7 +143,7 @@ class SemesterService:
                 error_message=readable_error, raw_error=raw_error_message
             )
 
-    @staticmethod
+    @staticmethod  # delete single semester by super admin
     async def delete_semester(
         semester_id: int,
         db: AsyncSession,

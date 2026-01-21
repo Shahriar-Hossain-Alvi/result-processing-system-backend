@@ -15,7 +15,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 class SubjectService:
 
-    @staticmethod
+    @staticmethod  # create new subject
     async def create_subject(
             subject_data: SubjectCreateSchema,
             db: AsyncSession,
@@ -68,17 +68,17 @@ class SubjectService:
                 error_message=readable_error, raw_error=raw_error_message
             )
 
-    @staticmethod
-    async def get_subject(db: AsyncSession, subject_id: int):
-        subject = await db.scalar(select(Subject).where(Subject.id == subject_id))
+    # @staticmethod
+    # async def get_subject(db: AsyncSession, subject_id: int):
+    #     subject = await db.scalar(select(Subject).where(Subject.id == subject_id))
 
-        if not subject:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Subject not found")
+    #     if not subject:
+    #         raise HTTPException(
+    #             status_code=status.HTTP_404_NOT_FOUND, detail="Subject not found")
 
-        return subject
+    #     return subject
 
-    @staticmethod
+    @staticmethod  # get all subjects
     async def get_subjects(
         db: AsyncSession,
         subject_credits: float | None = None,
@@ -120,7 +120,7 @@ class SubjectService:
 
         return subjects
 
-    @staticmethod
+    @staticmethod  # update single subject
     async def update_subject_by_admin(
         id: int,
         subject_update_data: SubjectUpdateSchema,
@@ -174,7 +174,7 @@ class SubjectService:
                 error_message=readable_error, raw_error=raw_error_message
             )
 
-    @staticmethod
+    @staticmethod  # delete single subject by super admin
     async def delete_subject(
         subject_id: int,
         db: AsyncSession,

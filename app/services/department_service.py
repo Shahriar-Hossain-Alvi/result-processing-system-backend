@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 class DepartmentService:
 
-    @staticmethod
+    @staticmethod  # create department
     async def create_department(
         department_data: DepartmentCreateSchema,
         db: AsyncSession,
@@ -72,21 +72,21 @@ class DepartmentService:
                 error_message=readable_error, raw_error=raw_error_message
             )
 
-    @staticmethod
+    @staticmethod  # get all departments
     async def get_departments(db: AsyncSession):
         statement = select(Department).order_by(Department.department_name)
         result = await db.execute(statement)
 
         return result.scalars().all()
 
-    @staticmethod
-    async def get_department(db: AsyncSession, department_id: int):
-        statement = select(Department).where(Department.id == department_id)
-        result = await db.execute(statement)
+    # @staticmethod # get single department
+    # async def get_department(db: AsyncSession, department_id: int):
+    #     statement = select(Department).where(Department.id == department_id)
+    #     result = await db.execute(statement)
 
-        return result.scalar_one_or_none()
+    #     return result.scalar_one_or_none()
 
-    @staticmethod
+    @staticmethod  # update department
     async def update_department(
         department_id: int,
         department_data: DepartmentUpdateSchema,
@@ -143,7 +143,7 @@ class DepartmentService:
                 error_message=readable_error, raw_error=raw_error_message
             )
 
-    @staticmethod
+    @staticmethod  # delete department by super admin
     async def delete_department(
         department_id: int,
         db: AsyncSession,

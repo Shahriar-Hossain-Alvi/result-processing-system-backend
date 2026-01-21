@@ -5,7 +5,6 @@ from app.core.exceptions import DomainIntegrityError
 from app.db.db import get_db_session
 from app.permissions import ensure_roles
 from app.schemas.subject_offering_schema import AllSubjectOfferingsResponseSchema, SubjectOfferingCreateSchema, SubjectOfferingUpdateSchema
-from app.schemas.subject_schema import MinimalSemesterResponseSchema
 from app.schemas.user_schema import UserOutSchema
 from app.services.subject_offering_service import SubjectOfferingService
 
@@ -16,6 +15,7 @@ router = APIRouter(
 )
 
 
+# create subject offering: used in Assign Course page to create new subject offering
 @router.post("/")
 async def create_new_subject_offering(
     request: Request,
@@ -49,6 +49,7 @@ async def create_new_subject_offering(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
+# get all subject offerings: used in Assign Course page to update existing subject offering by admin, super admin
 @router.get("/",
             response_model=list[AllSubjectOfferingsResponseSchema]
             )
@@ -83,40 +84,39 @@ async def get_all_subject_offerings(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
+
 # get offered subjects list for marking (Admin=All subjects, Teacher=subjects they teach)
+# @router.get("/offered_subjects", response_model=list[MinimalSemesterResponseSchema])
+# async def get_offered_subjects_for_marking(
+#     semester_id: int,
+#     department_id: int,
+#     authorized_user: UserOutSchema = Depends(
+#         ensure_roles(["super_admin", "admin", "teacher"])),
+#     db: AsyncSession = Depends(get_db_session),
+# ):
+#     try:
+#         return await SubjectOfferingService.get_offered_subjects_for_marking(db, semester_id, department_id, authorized_user)
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.get("/offered_subjects", response_model=list[MinimalSemesterResponseSchema])
-async def get_offered_subjects_for_marking(
-    semester_id: int,
-    department_id: int,
-    authorized_user: UserOutSchema = Depends(
-        ensure_roles(["super_admin", "admin", "teacher"])),
-    db: AsyncSession = Depends(get_db_session),
-):
-    try:
-        return await SubjectOfferingService.get_offered_subjects_for_marking(db, semester_id, department_id, authorized_user)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
-
-@router.get("/{subject_offering_id}")
-async def get_single_subject_offering(
-    subject_offering_id: int,
-    authorized_user: UserOutSchema = Depends(
-        ensure_roles(["super_admin", "admin", "teacher"])),
-    db: AsyncSession = Depends(get_db_session),
-):
-    try:
-        return await SubjectOfferingService.get_subject_offering(db, subject_offering_id)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+# @router.get("/{subject_offering_id}")
+# async def get_single_subject_offering(
+#     subject_offering_id: int,
+#     authorized_user: UserOutSchema = Depends(
+#         ensure_roles(["super_admin", "admin", "teacher"])),
+#     db: AsyncSession = Depends(get_db_session),
+# ):
+#     try:
+#         return await SubjectOfferingService.get_subject_offering(db, subject_offering_id)
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.patch("/{subject_offering_id}")

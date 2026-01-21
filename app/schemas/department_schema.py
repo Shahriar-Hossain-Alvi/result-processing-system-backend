@@ -6,10 +6,12 @@ class DepartmentBaseSchema(BaseModel):
     department_name: str
 
 
+# used in create_new_department router function
 class DepartmentCreateSchema(DepartmentBaseSchema):
     pass
 
 
+# used in get_all_departments router function
 class DepartmentOutSchema(DepartmentBaseSchema):
     id: int
     created_at: datetime
@@ -23,5 +25,6 @@ class DepartmentOutSchema(DepartmentBaseSchema):
     # This allows the UserOutSchema to be initialized directly from a SQLAlchemy without having to convert it to a dictionary or throw an error
 
 
+# used in update_department router function
 class DepartmentUpdateSchema(DepartmentBaseSchema):
     pass

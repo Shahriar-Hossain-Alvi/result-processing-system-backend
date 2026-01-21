@@ -114,7 +114,7 @@ async def update_single_department(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# delete a department
+# delete a department: used in Departments & Semester page to delete department by super admin
 @router.delete("/{id}")
 async def delete_single_department(
     id: int,

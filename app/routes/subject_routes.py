@@ -16,6 +16,7 @@ router = APIRouter(
 )
 
 
+# create subject: used in subjects page
 @router.post("/")
 async def create_new_subject(
     subject_data: SubjectCreateSchema,
@@ -72,20 +73,20 @@ async def get_all_subjects(
 
 
 # get single subject
-@router.get("/{id}")
-async def get_single_subject(
-        id: int,
-        current_user: UserOutSchema = Depends(get_current_user),
-        db: AsyncSession = Depends(get_db_session)):
-    try:
-        return await SubjectService.get_subject(db, id)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.critical(f"Get single subject Unexpected Error: {e}")
+# @router.get("/{id}")
+# async def get_single_subject(
+#         id: int,
+#         current_user: UserOutSchema = Depends(get_current_user),
+#         db: AsyncSession = Depends(get_db_session)):
+#     try:
+#         return await SubjectService.get_subject(db, id)
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.critical(f"Get single subject Unexpected Error: {e}")
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
 # get subject by code
