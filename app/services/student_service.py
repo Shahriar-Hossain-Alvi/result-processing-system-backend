@@ -119,7 +119,8 @@ class StudentService:
     ):
         try:
             query = select(Student).options(
-                selectinload(Student.department)
+                selectinload(Student.department),
+                selectinload(Student.semester)
             ).order_by(Student.name)
 
             if search:

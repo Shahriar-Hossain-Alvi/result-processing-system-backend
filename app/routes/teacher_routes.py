@@ -5,7 +5,7 @@ from app.core.authenticated_user import get_current_user
 from app.core.exceptions import DomainIntegrityError
 from app.permissions import ensure_roles
 from app.db.db import get_db_session
-from app.schemas.teacher_schema import TeacherCreateSchema, TeacherResponseSchemaForSubjectOffering, TeacherUpdateByAdminSchema
+from app.schemas.teacher_schema import TeacherCreateSchema, TeacherResponseSchemaForSubjectOfferingSearch, TeacherUpdateByAdminSchema
 from app.schemas.user_schema import UserOutSchema
 from app.services.teacher_service import TeacherService
 
@@ -63,7 +63,7 @@ async def create_teacher_record(
 #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 # get all teachers with minimal data for course allocation(Subject Offering)
-@router.get("/all", response_model=list[TeacherResponseSchemaForSubjectOffering])
+@router.get("/all", response_model=list[TeacherResponseSchemaForSubjectOfferingSearch])
 async def get_all_teachers_with_minimal_data(
     request: Request,
     search: str | None = None,

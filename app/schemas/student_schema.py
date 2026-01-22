@@ -55,6 +55,36 @@ class StudentCreateSchema(StudentBaseSchema):
 #     photo_url: str | None = None
 
 
+# used in get_all_students_with_minimal_data for mark input
+class DepartmentDataForMinimalStudent(BaseModel):
+    id: int
+    department_name: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+# used in get_all_students_with_minimal_data for mark input
+class SemesterDataForMinimalStudent(BaseModel):
+    id: int
+    semester_name: str
+    semester_number: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+# used in get_all_students_with_minimal_data for mark input
+class StudentResponseSchemaForMarkInputSearch(BaseModel):
+    id: int
+    name: str
+    registration: str
+    session: str
+    user_id: int
+    department_id: int | None
+    department: DepartmentDataForMinimalStudent | None
+    semester_id: int | None
+    semester: SemesterDataForMinimalStudent | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 # used in update_single_student_by_admin router function
 _Partial_Student = create_partial_model(StudentBaseSchema)
 

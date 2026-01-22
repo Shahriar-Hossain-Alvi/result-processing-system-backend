@@ -5,7 +5,7 @@ from app.core.exceptions import DomainIntegrityError
 from app.services.student_service import StudentService
 from app.db.db import get_db_session
 from app.permissions import ensure_roles
-from app.schemas.student_schema import StudentCreateSchema, StudentUpdateByAdminSchema
+from app.schemas.student_schema import StudentCreateSchema, StudentUpdateByAdminSchema, StudentResponseSchemaForMarkInputSearch
 from app.schemas.user_schema import UserOutSchema
 
 router = APIRouter(
@@ -52,7 +52,7 @@ async def create_student_record(
 
 # get all students with minimal data for marks entry
 @router.get("/allStudentMinimal",
-            # response_model=list[TeacherResponseSchemaForSubjectOffering]
+            response_model=list[StudentResponseSchemaForMarkInputSearch]
             )
 async def get_all_students_with_minimal_data(
     request: Request,

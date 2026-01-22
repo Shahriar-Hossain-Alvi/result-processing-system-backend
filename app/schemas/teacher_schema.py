@@ -43,11 +43,11 @@ class DepartmentDataForMinimalTeacher(BaseModel):
 
 
 # used in get_all_teachers_with_minimal_data for subject offering
-class TeacherResponseSchemaForSubjectOffering(BaseModel):
+class TeacherResponseSchemaForSubjectOfferingSearch(BaseModel):
     id: int
     name: str
-    department_id: int
-    department: DepartmentDataForMinimalTeacher
+    department_id: int | None
+    department: DepartmentDataForMinimalTeacher | None
 
     model_config = ConfigDict(from_attributes=True)
 
