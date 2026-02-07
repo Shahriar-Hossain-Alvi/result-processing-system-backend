@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     CLOUDINARY_CLOUD_NAME: str
     CLOUDINARY_API_KEY: str
     CLOUDINARY_API_SECRET: str
+    ADMIN_EMAIL: str
+    ADMIN_PASSWORD: str
+    SUPER_ADMIN_EMAIL: str
+    SUPER_ADMIN_PASSWORD: str
 
     # Another Approach => directly get the env variables and if not found use the default values
     # DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db/postgres")

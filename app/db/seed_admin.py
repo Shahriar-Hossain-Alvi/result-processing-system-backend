@@ -5,11 +5,19 @@ from app.core.pw_hash import hash_password
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy import select
+from sqlalchemy.pool import NullPool
 
 
 # create engine and database session
 engine = create_async_engine(
     settings.DATABASE_URL,
+    # This is the critical fix for Transaction Mode
+    connect_args={
+        "prepared_statement_cache_size": 0,
+        "statement_cache_size": 0
+    },
+    # Highly recommended for Supabase/Render to avoid stale connections
+    poolclass=NullPool,
     echo=True,  # print sql queries
     future=True,  # enables sqlalchemy 2.0
 )
@@ -37,9 +45,11 @@ async def create_initial_admin():
             return
 
         new_admin = User(
-            username="admin@gmail.com",
-            email="admin@gmail.com",
-            hashed_password=hash_password("adminpassword"),
+            # username="admin@gmail.com",
+            # hashed_password=hash_password("adminpassword"),
+            username=settings.ADMIN_EMAIL,
+            email=settings.ADMIN_EMAIL,
+            hashed_password=hash_password(settings.ADMIN_PASSWORD),
             role="admin",
             is_active=True,
         )
@@ -64,9 +74,11 @@ async def create_initial_super_admin():
             return
 
         new_super_admin = User(
-            username="shahriarhossainalvi@gmail.com",
-            email="shahriarhossainalvi@gmail.com",
-            hashed_password=hash_password("superadminpassword"),
+            # username="shahriarhossainalvi@gmail.com",
+            # hashed_password=hash_password("superadminpassword"),
+            username=settings.SUPER_ADMIN_EMAIL,
+            email=settings.SUPER_ADMIN_EMAIL,
+            hashed_password=hash_password(settings.SUPER_ADMIN_PASSWORD),
             role="super_admin",
             is_active=True,
         )

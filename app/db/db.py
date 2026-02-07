@@ -5,15 +5,15 @@ from sqlalchemy.pool import NullPool
 # create engine and database session
 engine = create_async_engine(
     settings.DATABASE_URL,  # Async DB URL
-    echo=False,  # False because we will use Logger to print sql queries
-    future=True,  # enables sqlalchemy 2.0
     # This is the critical fix for Transaction Mode
     connect_args={
         "prepared_statement_cache_size": 0,
         "statement_cache_size": 0
     },
     # Highly recommended for Supabase/Render to avoid stale connections
-    poolclass=NullPool
+    poolclass=NullPool,
+    echo=False,  # False because we will use Logger to print sql queries
+    future=True,  # enables sqlalchemy 2.0
 )
 
 AsyncSessionLocal = async_sessionmaker(
