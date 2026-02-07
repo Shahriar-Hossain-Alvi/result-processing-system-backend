@@ -1,14 +1,17 @@
 from collections import defaultdict
-from typing import Annotated
+from typing import Annotated, Any
+from loguru import logger
 from sqlalchemy import and_, join, select
+from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models import Mark, ResultStatus
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, Query, status
+from fastapi import HTTPException, Query, Request, status
 from app.models.semester_model import Semester
 from app.models.student_model import Student
 from app.models.subject_model import Subject
 from app.models.subject_offerings_model import SubjectOfferings
+from app.models.teacher_model import Teacher
 from app.models.user_model import User
 from app.schemas.marks_schema import MarksCreateSchema, MarksUpdateSchema
 from app.schemas.user_schema import UserOutSchema
@@ -70,7 +73,8 @@ class MarksService:
     async def create_mark(
         db: AsyncSession,
         mark_data: MarksCreateSchema,
-        current_user: UserOutSchema
+        current_user: UserOutSchema,
+        request: Request | None = None
     ):
         # check if a mark for this subject+student+semester already exist
 
@@ -86,8 +90,9 @@ class MarksService:
         existing_mark = result.scalar_one_or_none()
 
         if existing_mark:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="A mark already exist for this student, subject, semester.")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A mark already exist for this student, subject, semester.")
 
         # check if the student exists, throws error if not
         await check_existence(Student, db, mark_data.student_id, "Student")
@@ -108,11 +113,11 @@ class MarksService:
             ))
 
             if not is_taught_by_this_teacher:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                    detail="You are not authorized to create a mark for this subject.")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You are not authorized to create a mark for this subject.")
 
         # if the user(teacher) is not different or the Admin, then create the mark
-
         # create new_mark object but it does not have the total marks and gpa yet
         new_mark = Mark(
             **mark_data.model_dump()
@@ -126,252 +131,282 @@ class MarksService:
             await db.commit()
             await db.refresh(new_mark)
 
-            return new_mark
+            return {"message": f"Mark inserted successfully. Total Mark: {new_mark.total_mark} GPA: {new_mark.GPA}"}
         except IntegrityError as e:
-            # generally the PostgreSQL's error message will be in e.orig.args[0]
-            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
-                e)
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state
+            await db.rollback()
 
-            # send the error message to the parser
-            readable_error = parse_integrity_error(error_msg)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
 
-    # group marks by semester
+            logger.error(f"Integrity error while inserting mark: {e}")
+            logger.error(f"Readable Error: {readable_error}")
 
-    @staticmethod
+            # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
+
+                if mark_data:
+                    payload["data"] = mark_data.model_dump(
+                        mode="json",
+                        exclude={
+                            "user": {
+                                "password",
+                                "hashed_password",
+                            }
+                        },
+                    )
+
+                request.state.audit_payload = payload
+
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
+
+    @staticmethod  # group marks by semester
     def group_marks_by_semester(marks):
         grouped = defaultdict(list)
         for m in marks:
             grouped[m.semester_id].append(m)
+            # grouped[m.student.department_id].append(m)
 
         return [{"semester_id": sem_id, "marks": items} for sem_id, items in grouped.items()]
 
-    # get all marks for a subject with semester filtering, subject filtering
-
-    @staticmethod
-    async def get_all_marks_for_a_student(
+    @staticmethod  # get result for a particular department and semester and session
+    async def get_all_marks_with_filters(
         db: AsyncSession,
-        student_id: int,
-        semester_id: int | None = None,  # for filtering
-        subject_id: int | None = None  # for filtering
+        current_user: UserOutSchema,
+        target_semester_id: int | None = None,
+        target_department_id: int | None = None,
+        session: str | None = None,
+        result_status: str | None = None,
+        is_challenged: bool | None = None
     ):
+        # Base query with joins (Mark, Student, Subject table)
+        statement = select(Mark).join(Student).join(Subject)
 
-        stmt = select(Mark).where(Mark.student_id == student_id)
-
-        if semester_id:
-            # this part will be added to the existing statement if the semester_id is provided
-            stmt = stmt.where(Mark.semester_id == semester_id)
-
-        if subject_id:
-            # this part will be added to the existing statement if the subject_id is provided
-            stmt = stmt.where(Mark.subject_id == subject_id)
-
-        marks = await db.scalars(stmt)
-
-        return MarksService.group_marks_by_semester(marks)
-
-    # get all students mark for a particular subject
-
-    @staticmethod
-    async def get_all_mark_for_a_subject(db: AsyncSession, subject_id: int):
-        marks = await db.scalars(select(Mark).where(Mark.subject_id == subject_id))
-
-        return marks
-
-    # get result for a particular department and semester and session
-
-    @staticmethod
-    async def get_department_semester_result(
-        db: AsyncSession,
-        target_semester_id: int,
-        target_department_id: int,
-        session: str,
-        # current_user: UserOutSchema
-    ):
-        # Base query
-        statement = select(Mark)\
-            .join(Student, Student.id == Mark.student_id)\
-            .join(Subject, Subject.id == Mark.subject_id)\
-            .join(SubjectOfferings, SubjectOfferings.subject_id == Subject.id)\
-            .where(
-                and_(
-                    Student.department_id == target_department_id,
-                    Mark.semester_id == target_semester_id,
-                    Student.session == session
-                )
-        )\
-            .options(
-                # The 'Mark' objects returned will now have 'mark.student' and 'mark.subject'
-                # already loaded without further database hits.
-                joinedload(Mark.student),
-                joinedload(Mark.subject),
+        # options
+        statement = statement.options(
+            # Mark -> Student -> Department = get the department info
+            joinedload(Mark.student).joinedload(Student.department),
+            # Mark -> Student -> Semester = get the current semester info
+            joinedload(Mark.student).joinedload(Student.semester),
+            # Mark -> Subject = get the subject info
+            joinedload(Mark.subject)
         )
 
         # If teacher → restrict to subjects they teach
-        # if current_user.role == "teacher":
-        #     stmt = stmt.where(SubjectOffering.taught_by_id == current_user.id)
+        if current_user.role == "teacher":
+            teacher_res = await db.execute(select(Teacher.id).where(Teacher.user_id == current_user.id))
+            teacher_id = teacher_res.scalar_one_or_none()
+
+            if not teacher_id:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Teacher not found"
+                )
+            statement = statement.join(
+                SubjectOfferings,
+                and_(
+                    SubjectOfferings.subject_id == Mark.subject_id,
+                    SubjectOfferings.department_id == Student.department_id,
+                )
+            ).where(SubjectOfferings.taught_by_id == teacher_id)
+
+        # If filters are present
+        if target_semester_id:
+            statement = statement.where(Mark.semester_id == target_semester_id)
+        if target_department_id:
+            statement = statement.where(
+                Student.department_id == target_department_id)
+        if session:
+            statement = statement.where(Student.session == session)
 
         res = await db.execute(statement)
         marks = res.scalars().all()
 
         return MarksService.group_marks_by_semester(marks)
 
-    # update a mark
+    # @staticmethod  # get all marks for a subject with semester filtering, subject filtering
+    # async def get_all_marks_for_a_student(
+    #     db: AsyncSession,
+    #     student_id: int,
+    #     semester_id: int | None = None,  # for filtering
+    #     subject_id: int | None = None  # for filtering
+    # ):
 
-    @staticmethod
-    async def update_mark(
-        db: AsyncSession,
-        update_data: MarksUpdateSchema,
-        mark_id: int,
-        current_user: UserOutSchema
-    ):
-        mark = await db.scalar(select(Mark).where(Mark.id == mark_id))
+    #     stmt = select(Mark).where(Mark.student_id == student_id)
 
-        if not mark:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Mark not found")
+    #     if semester_id:
+    #         # this part will be added to the existing statement if the semester_id is provided
+    #         stmt = stmt.where(Mark.semester_id == semester_id)
 
-        user_role = current_user.role.value
-        update_dict = update_data.model_dump(
-            exclude_unset=True, exclude_none=True)
+    #     if subject_id:
+    #         # this part will be added to the existing statement if the subject_id is provided
+    #         stmt = stmt.where(Mark.subject_id == subject_id)
 
-        # verify teacher role and is he teaching this subject
-        is_teacher_authorized = False
-        if user_role == "teacher":
-            is_taught_by_this_teacher = await db.scalar(select(SubjectOfferings).where(
-                and_(
-                    SubjectOfferings.taught_by_id == current_user.id,
-                    SubjectOfferings.subject_id == mark.subject_id
-                )
-            ))
-            if is_taught_by_this_teacher:
-                is_teacher_authorized = True
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You are not authorized to update mark for this subject.")
+    #     marks = await db.scalars(stmt)
 
-        # verify student role and only update "result_status" field from "published" to "challenged"
-        if user_role == "student":
-            if "result_status" in update_dict:
-                new_status = update_dict["result_status"]
+    #     return MarksService.group_marks_by_semester(marks)
 
-                # Challenge result when its published
-                if new_status == ResultStatus.CHALLENGED and mark.result_status.value == ResultStatus.PUBLISHED:
-                    mark.result_status = ResultStatus.CHALLENGED  # set result is challenged
-                    mark.result_challenge_payment_status = False  # set payment status is pending
-                    mark.challenged_at = datetime.now()  # set challenged date, need for payment
-                    # show error if student tries to update more than 1 field
-                    if len(update_dict) > 1:
-                        raise HTTPException(
-                            status_code=status.HTTP_403_FORBIDDEN,
-                            detail="You are not authorized to update more than one field.")
-                # show error if student tries to challenge when result_status is "unpublished", "resolved" or already "challenged"
-                else:
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="You can only challenge result once when it is published!")
-            # show error if student tries to update other fields
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN, detail="you are not authorized to update this fields.")
+    # @staticmethod  # get all students mark for a particular subject
+    # async def get_all_mark_for_a_subject(db: AsyncSession, subject_id: int):
+    #     marks = await db.scalars(select(Mark).where(Mark.subject_id == subject_id))
+    #     return marks
 
-        # if payment status is updating make sure user is admin
-        if "result_challenge_payment_status" in update_dict:
-            if (user_role != "admin"):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Only admin can update payment status.")
+    # @staticmethod  # update a mark
+    # async def update_mark(
+    #     db: AsyncSession,
+    #     update_data: MarksUpdateSchema,
+    #     mark_id: int,
+    #     current_user: UserOutSchema
+    # ):
+    #     mark = await db.scalar(select(Mark).where(Mark.id == mark_id))
 
-            new_payment_status = update_dict["result_challenge_payment_status"]
+    #     if not mark:
+    #         raise HTTPException(
+    #             status_code=status.HTTP_404_NOT_FOUND, detail="Mark not found")
 
-            if mark.result_status.value == ResultStatus.CHALLENGED:
-                # change payment status only if result is challenged
-                mark.result_challenge_payment_status = new_payment_status
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You can only update payment status when result is challenged!")
+    #     user_role = current_user.role.value
+    #     update_dict = update_data.model_dump(
+    #         exclude_unset=True, exclude_none=True)
 
-        # Update rest of the updatable fields/Marks by admin/teacher
-        if user_role in ["admin", "teacher"] and (user_role == "admin" or is_teacher_authorized):
-            can_update_marks_data = (
-                mark.result_status.value != ResultStatus.CHALLENGED or
-                mark.result_challenge_payment_status is True
-            )
+    #     # verify teacher role and is he teaching this subject
+    #     is_teacher_authorized = False
+    #     if user_role == "teacher":
+    #         is_taught_by_this_teacher = await db.scalar(select(SubjectOfferings).where(
+    #             and_(
+    #                 SubjectOfferings.taught_by_id == current_user.id,
+    #                 SubjectOfferings.subject_id == mark.subject_id
+    #             )
+    #         ))
+    #         if is_taught_by_this_teacher:
+    #             is_teacher_authorized = True
+    #         else:
+    #             raise HTTPException(
+    #                 status_code=status.HTTP_403_FORBIDDEN,
+    #                 detail="You are not authorized to update mark for this subject.")
 
-            if can_update_marks_data:
-                # compute or calculate marks if provided in update data
-                mark_fields_updated = False
-                for field in ["assignment_mark", "class_test_mark", "midterm_mark", "final_exam_mark"]:
-                    if field in update_dict:
-                        setattr(mark, field, update_dict[field])
-                        mark_fields_updated = True
+    #     # verify student role and only update "result_status" field from "published" to "challenged"
+    #     if user_role == "student":
+    #         if "result_status" in update_dict:
+    #             new_status = update_dict["result_status"]
 
-                if mark_fields_updated:
-                    MarksService.compute_total_marks_and_gpa(mark)
+    #             # Challenge result when its published
+    #             if new_status == ResultStatus.CHALLENGED and mark.result_status.value == ResultStatus.PUBLISHED:
+    #                 mark.result_status = ResultStatus.CHALLENGED  # set result is challenged
+    #                 mark.result_challenge_payment_status = False  # set payment status is pending
+    #                 mark.challenged_at = datetime.now()  # set challenged date, need for payment
+    #                 # show error if student tries to update more than 1 field
+    #                 if len(update_dict) > 1:
+    #                     raise HTTPException(
+    #                         status_code=status.HTTP_403_FORBIDDEN,
+    #                         detail="You are not authorized to update more than one field.")
+    #             # show error if student tries to challenge when result_status is "unpublished", "resolved" or already "challenged"
+    #             else:
+    #                 raise HTTPException(
+    #                     status_code=status.HTTP_403_FORBIDDEN,
+    #                     detail="You can only challenge result once when it is published!")
+    #         # show error if student tries to update other fields
+    #         else:
+    #             raise HTTPException(
+    #                 status_code=status.HTTP_403_FORBIDDEN, detail="you are not authorized to update this fields.")
 
-                    # if result_status is challenged and mark is updated then resolve the status
-                    if mark.result_status.value == ResultStatus.CHALLENGED:
-                        mark.result_status = ResultStatus.RESOLVED
+    #     # if payment status is updating make sure user is admin
+    #     if "result_challenge_payment_status" in update_dict:
+    #         if (user_role != "admin"):
+    #             raise HTTPException(
+    #                 status_code=status.HTTP_403_FORBIDDEN,
+    #                 detail="Only admin can update payment status.")
 
-            elif (f in update_dict for f in ["assignment_mark", "class_test_mark", "midterm_mark", "final_exam_mark"]):
-                # if tries to update marks when result is challenged and payment is pending
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Cannot update marks data while result is challenged and payment is pending."
-                )
+    #         new_payment_status = update_dict["result_challenge_payment_status"]
 
-        if "result_status" in update_dict and user_role in ["admin", "teacher"]:
-            new_status = update_dict["result_status"]
-            if new_status == ResultStatus.CHALLENGED and user_role != "student":
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Only student can challenge result."
-                )
-            mark.result_status = new_status
-            # if update_data.assignment_mark is not None:
-            #     mark.assignment_mark = update_data.assignment_mark
+    #         if mark.result_status.value == ResultStatus.CHALLENGED:
+    #             # change payment status only if result is challenged
+    #             mark.result_challenge_payment_status = new_payment_status
+    #         else:
+    #             raise HTTPException(
+    #                 status_code=status.HTTP_403_FORBIDDEN,
+    #                 detail="You can only update payment status when result is challenged!")
 
-            # if update_data.class_test_mark is not None:
-            #     mark.class_test_mark = update_data.class_test_mark
+    #     # Update rest of the updatable fields/Marks by admin/teacher
+    #     if user_role in ["admin", "teacher"] and (user_role == "admin" or is_teacher_authorized):
+    #         can_update_marks_data = (
+    #             mark.result_status.value != ResultStatus.CHALLENGED or
+    #             mark.result_challenge_payment_status is True
+    #         )
 
-            # if update_data.midterm_mark is not None:
-            #     mark.midterm_mark = update_data.midterm_mark
+    #         if can_update_marks_data:
+    #             # compute or calculate marks if provided in update data
+    #             mark_fields_updated = False
+    #             for field in ["assignment_mark", "class_test_mark", "midterm_mark", "final_exam_mark"]:
+    #                 if field in update_dict:
+    #                     setattr(mark, field, update_dict[field])
+    #                     mark_fields_updated = True
 
-            # if update_data.final_exam_mark is not None:
-            #     mark.final_exam_mark = update_data.final_exam_mark
+    #             if mark_fields_updated:
+    #                 MarksService.compute_total_marks_and_gpa(mark)
 
-            # MarksService.compute_total_marks_and_gpa(mark)
-        try:
-            await db.commit()
-            await db.refresh(mark)
+    #                 # if result_status is challenged and mark is updated then resolve the status
+    #                 if mark.result_status.value == ResultStatus.CHALLENGED:
+    #                     mark.result_status = ResultStatus.RESOLVED
 
-            return mark
-        except IntegrityError as e:
-            # generally the PostgreSQL's error message will be in e.orig.args[0]
-            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
-                e)
+    #         elif (f in update_dict for f in ["assignment_mark", "class_test_mark", "midterm_mark", "final_exam_mark"]):
+    #             # if tries to update marks when result is challenged and payment is pending
+    #             raise HTTPException(
+    #                 status_code=status.HTTP_403_FORBIDDEN,
+    #                 detail="Cannot update marks data while result is challenged and payment is pending."
+    #             )
 
-            # send the error message to the parser
-            readable_error = parse_integrity_error(error_msg)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
+    #     if "result_status" in update_dict and user_role in ["admin", "teacher"]:
+    #         new_status = update_dict["result_status"]
+    #         if new_status == ResultStatus.CHALLENGED and user_role != "student":
+    #             raise HTTPException(
+    #                 status_code=status.HTTP_403_FORBIDDEN,
+    #                 detail="Only student can challenge result."
+    #             )
+    #         mark.result_status = new_status
+    #         # if update_data.assignment_mark is not None:
+    #         #     mark.assignment_mark = update_data.assignment_mark
 
-    # update a mark by student
+    #         # if update_data.class_test_mark is not None:
+    #         #     mark.class_test_mark = update_data.class_test_mark
 
-    # delete a mark
+    #         # if update_data.midterm_mark is not None:
+    #         #     mark.midterm_mark = update_data.midterm_mark
 
-    @staticmethod
-    async def delete_mark(db: AsyncSession, mark_id: int):
-        mark = await db.scalar(select(Mark).where(Mark.id == mark_id))
+    #         # if update_data.final_exam_mark is not None:
+    #         #     mark.final_exam_mark = update_data.final_exam_mark
 
-        if not mark:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Mark not found")
+    #         # MarksService.compute_total_marks_and_gpa(mark)
+    #     try:
+    #         await db.commit()
+    #         await db.refresh(mark)
 
-        await db.delete(mark)
-        await db.commit()
+    #         return mark
+    #     except IntegrityError as e:
+    #         # generally the PostgreSQL's error message will be in e.orig.args[0]
+    #         error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+    #             e)
 
-        return mark
+    #         # send the error message to the parser
+    #         readable_error = parse_integrity_error(error_msg)
+    #         raise HTTPException(
+    #             status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
+
+    # @staticmethod # delete a mark
+    # async def delete_mark(db: AsyncSession, mark_id: int):
+    #     mark = await db.scalar(select(Mark).where(Mark.id == mark_id))
+
+    #     if not mark:
+    #         raise HTTPException(
+    #             status_code=status.HTTP_404_NOT_FOUND, detail="Mark not found")
+
+    #     await db.delete(mark)
+    #     await db.commit()
+
+    #     return mark

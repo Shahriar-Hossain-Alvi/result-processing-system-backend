@@ -18,6 +18,7 @@ class MarksBaseSchema(BaseModel):
     challenged_at: datetime | None = None
 
 
+# used in create_new_mark router function
 class MarksCreateSchema(MarksBaseSchema):
     pass
 
