@@ -40,5 +40,7 @@ EXPOSE 8000
 
 # TODO: --reload flag for uvicorn? gunicorn?
 
-# IF using alembic migrations then use the following command
-CMD bash -c "alembic upgrade head && python app/db/seed_admin.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+# IF using alembic migrations then use the following command => On Render, you can set a "Pre-deploy Command." Move alembic upgrade head there so it runs once before the new version of your app goes live
+# CMD bash -c "alembic upgrade head && python app/db/seed_admin.py && uvicorn app.main:app --host 0.0.0.0 --port 8000" 
+
+CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8000"]
