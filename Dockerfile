@@ -40,9 +40,14 @@ EXPOSE 8000
 
 # TODO: --reload flag for uvicorn? gunicorn?
 
-# IF using alembic migrations then use the following command => On Render, you can set a "Pre-deploy Command." Move alembic upgrade head there so it runs once before the new version of your app goes live
+# 1. Ths command works in local
 # CMD bash -c "alembic upgrade head && python app/db/seed_admin.py && uvicorn app.main:app --host 0.0.0.0 --port 8000" 
-CMD bash -c "alembic upgrade head && python app/db/seed_admin.py && gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000"
 
-# The below commad needs pre-deploy command for alembic in Render to work. But its paid plan so no free tier
+# 2. The below commmand faild to start backend in Render. ModuleNotFoundError: No module named 'app' This happens because when you run python app/db/seed_admin.py, Python looks for a folder named app inside the folder where the script lives. It can't find it because app is the parent directory.
+# CMD bash -c "alembic upgrade head && python app/db/seed_admin.py && gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000"
+
+# 3. The below commad needs pre-deploy command for alembic in Render to work. But its paid plan so no free tier
 # CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8000"]
+
+# 4. The below command works in Render
+CMD bash -c "alembic upgrade head && PYTHONPATH=. python app/db/seed_admin.py && gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000"
