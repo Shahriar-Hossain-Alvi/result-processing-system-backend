@@ -1,3 +1,4 @@
+import ssl
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from app.core import settings
 from sqlalchemy.pool import NullPool
@@ -12,6 +13,7 @@ engine = create_async_engine(
     connect_args={
         "statement_cache_size": 0,
         "prepared_statement_cache_size": 0,
+        "ssl": True
         # "command_timeout": 60,
     },
     # Highly recommended for Supabase/Render to avoid stale connections
