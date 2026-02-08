@@ -19,39 +19,82 @@ class AdminDashboardService:
     ):
 
         try:
-            # helper function to get count of any model/table
-            async def get_count(model):
-                query = select(func.count(model.id))
-                result = await db.execute(query)
-                return result.scalar() or 0
+            # 1. Build a single query that wraps multiple subqueries
+            query = select(
+                select(func.count(User.id)).scalar_subquery().label("users"),
+                select(func.count(User.id)).where(User.role.in_(
+                    ["admin", "super_admin"])).scalar_subquery().label("admins"),
+                select(func.count(Teacher.id)
+                       ).scalar_subquery().label("teachers"),
+                select(func.count(Student.id)
+                       ).scalar_subquery().label("students"),
+                select(func.count(Department.id)
+                       ).scalar_subquery().label("departments"),
+                select(func.count(Semester.id)
+                       ).scalar_subquery().label("semesters"),
+                select(func.count(Subject.id)
+                       ).scalar_subquery().label("subjects"),
+                select(func.count(SubjectOfferings.id)
+                       ).scalar_subquery().label("assigned_courses"),
+                select(func.count(Mark.id)).scalar_subquery().label("marks")
+            )
 
-            # Count all users
-            total_users = await get_count(User)
+            # 2. Execute the query
+            result = await db.execute(query)
 
-            # Count total admin
-            admin_count_result = await db.execute(select(func.count(User.id)).where(
-                or_(
-                    User.role == "admin",
-                    User.role == "super_admin"
-                )
-            ))
+            # 3. Fetch the first row
+            row = result.fetchone()
 
-            total_admins = admin_count_result.scalar() or 0
+            # 4. Critical Check: If row is None, return zeros instead of crashing
+            if row is None:
+                return {k: 0 for k in ["users", "admins", "teachers", "students", "departments", "semesters", "subjects", "assigned courses", "marks"]}
 
-            # direct counts from other tables
-            counts = {
-                "users": total_users,
-                "admins": total_admins,
-                "teachers": await get_count(Teacher),
-                "students": await get_count(Student),
-                "departments": await get_count(Department),
-                "semesters": await get_count(Semester),
-                "subjects": await get_count(Subject),
-                "assigned courses": await get_count(SubjectOfferings),
-                "marks": await get_count(Mark)
+            # 5. Return the mapped data
+            return {
+                "users": row.users,
+                "admins": row.admins,
+                "teachers": row.teachers,
+                "students": row.students,
+                "departments": row.departments,
+                "semesters": row.semesters,
+                "subjects": row.subjects,
+                "assigned courses": row.assigned_courses,
+                "marks": row.marks
             }
 
-            return counts
+        # helper function to get count of any model/table
+        # async def get_count(model):
+        #     query = select(func.count(model.id))
+        #     result = await db.execute(query)
+        #     return result.scalar() or 0
+
+        # # Count all users
+        # total_users = await get_count(User)
+
+        # # Count total admin
+        # admin_count_result = await db.execute(select(func.count(User.id)).where(
+        #     or_(
+        #         User.role == "admin",
+        #         User.role == "super_admin"
+        #     )
+        # ))
+
+        # total_admins = admin_count_result.scalar() or 0
+
+        # # direct counts from other tables
+        # counts = {
+        #     "users": total_users,
+        #     "admins": total_admins,
+        #     "teachers": await get_count(Teacher),
+        #     "students": await get_count(Student),
+        #     "departments": await get_count(Department),
+        #     "semesters": await get_count(Semester),
+        #     "subjects": await get_count(Subject),
+        #     "assigned courses": await get_count(SubjectOfferings),
+        #     "marks": await get_count(Mark)
+        # }
+
+        # return counts
 
         except IntegrityError as e:
             # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state to save the Audit Log
@@ -76,3 +119,41 @@ class AdminDashboardService:
             raise DomainIntegrityError(
                 error_message=readable_error, raw_error=raw_error_message
             )
+
+
+# @staticmethod
+# async def get_all_table_data_count(db: AsyncSession, request: Request | None = None):
+#     try:
+#         # We fetch all counts in one single SQL execution
+#         query = select(
+#             select(func.count(User.id)).scalar_subquery().label("users"),
+#             select(func.count(User.id)).where(User.role.in_(
+#                 ["admin", "super_admin"])).scalar_subquery().label("admins"),
+#             select(func.count(Teacher.id)).scalar_subquery().label("teachers"),
+#             select(func.count(Student.id)).scalar_subquery().label("students"),
+#             select(func.count(Department.id)
+#                    ).scalar_subquery().label("departments"),
+#             select(func.count(Semester.id)).scalar_subquery().label("semesters"),
+#             select(func.count(Subject.id)).scalar_subquery().label("subjects"),
+#             select(func.count(SubjectOfferings.id)
+#                    ).scalar_subquery().label("assigned_courses"),
+#             select(func.count(Mark.id)).scalar_subquery().label("marks")
+#         )
+
+#         result = await db.execute(query)
+#         row = result.fetchone()
+
+#         return {
+#             "users": row[0],
+#             "admins": row[1],
+#             "teachers": row[2],
+#             "students": row[3],
+#             "departments": row[4],
+#             "semesters": row[5],
+#             "subjects": row[6],
+#             "assigned courses": row[7],
+#             "marks": row[8]
+#         }
+#     except Exception as e:
+#         await db.rollback()
+        # ... your existing error handling ...
