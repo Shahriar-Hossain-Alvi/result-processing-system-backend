@@ -49,7 +49,10 @@ async def login_user(
             key="access_token",  # cookie name
             value=access_token,
             httponly=True,  # prevents access from javascript in the browser
-            samesite="lax",  # CSRF defense
+            # samesite="lax",  # CSRF defense. lax will not work from localhost -> render
+            # changing samesite to none to fix render issue but it is not secure so we need to add secure=True
+            samesite="none",
+            secure=True,  # Must be True if samesite="none"
             expires=datetime.now(
                 timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         )

@@ -5,15 +5,20 @@ from sqlalchemy.pool import NullPool
 # create engine and database session
 engine = create_async_engine(
     settings.DATABASE_URL,  # Async DB URL
+    future=True,  # enables sqlalchemy 2.0
+    echo=False,  # False because we will use Logger to print sql queries
     # This is the critical fix for Transaction Mode
+    # It helps prevent some cached metadata queries
+    execution_options={
+        "inline_proc": True
+    },
     connect_args={
         "prepared_statement_cache_size": 0,
-        "statement_cache_size": 0
+        "statement_cache_size": 0,
+        "command_timeout": 60,
     },
     # Highly recommended for Supabase/Render to avoid stale connections
     poolclass=NullPool,
-    echo=False,  # False because we will use Logger to print sql queries
-    future=True,  # enables sqlalchemy 2.0
 )
 
 AsyncSessionLocal = async_sessionmaker(
