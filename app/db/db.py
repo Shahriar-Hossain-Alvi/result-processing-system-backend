@@ -9,10 +9,6 @@ engine = create_async_engine(
     future=True,  # enables sqlalchemy 2.0
     echo=False,  # False because we will use Logger to print sql queries
     # This is the critical fix for Transaction Mode
-    # It helps prevent some cached metadata queries
-    # execution_options={
-    #     "inline_proc": True
-    # },
     connect_args={
         "statement_cache_size": 0,
         "prepared_statement_cache_size": 0,
