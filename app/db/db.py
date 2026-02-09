@@ -3,20 +3,28 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from app.core import settings
 from sqlalchemy.pool import NullPool
 
+# Determine if we need SSL (Neon/Supabase need it, local usually doesn't)
+# We can check if local db name "edutrack_db" or "db" (Docker) is in the URL
+is_local = "edutrack_db" in settings.DATABASE_URL or "@db:" in settings.DATABASE_URL
+
+# This is the critical fix for Transaction Mode, Highly recommended for Supabase/Render to avoid stale connections
+connect_args = {
+    "statement_cache_size": 0,
+    "prepared_statement_cache_size": 0,
+}
+
+# Only add SSL if we aren't local
+if not is_local:
+    connect_args["ssl"] = True
+
 # create engine and database session
 engine = create_async_engine(
     settings.DATABASE_URL,  # Async DB URL
     poolclass=NullPool,
+    connect_args=connect_args,
     future=True,  # enables sqlalchemy 2.0
     echo=False,  # False because we will use Logger to print sql queries
-    # This is the critical fix for Transaction Mode
-    connect_args={
-        "statement_cache_size": 0,
-        "prepared_statement_cache_size": 0,
-        "ssl": True
-        # "command_timeout": 60,
-    },
-    # Highly recommended for Supabase/Render to avoid stale connections
+
 )
 
 AsyncSessionLocal = async_sessionmaker(

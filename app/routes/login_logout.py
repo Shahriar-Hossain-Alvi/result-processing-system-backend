@@ -32,7 +32,7 @@ async def login(
     except HTTPException:
         raise
     except Exception as e:
-        logger.critical("Unexpected Error: ", e)
+        logger.critical(f"Unexpected Error: {e}")
         logger.critical("LOGIN FAILED FROM ROUTER")
         # attach audit payload
         if request:

@@ -6,19 +6,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.middleware.audit_log_middleware import AuditMiddleware
 from app.middleware.inject_token import TokenInjectionFromCookieToHeaderMiddleware
 from app.routes import department_routes, login_logout, mark_routes, semester_routes, student_routes, subject_offering_route, subject_routes, user_routes, teacher_routes, admin_dashboard_routes
+from app.core.config import settings
 
 # setup logging
 setup_logging()
 
 app = FastAPI()
 
-origins = [
-    "http://localhost:5173"
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
