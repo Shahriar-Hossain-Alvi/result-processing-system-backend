@@ -1,6 +1,4 @@
 from pydantic import BaseModel, ConfigDict
-from app.models.subject_model import Subject
-from app.schemas.subject_schema import MinimalSemesterResponseSchema
 from datetime import datetime
 from app.models import ResultStatus
 
@@ -48,16 +46,57 @@ class SemesterWiseAllSubjectsMarksResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# used in get_all_marks_with_filters router function
+class PopulatedMarksStudentsCurrentSemesterResponseSchema(BaseModel):
+    id: int
+    semester_name: str
+    semester_number: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+# used in get_all_marks_with_filters router function
+class PopulatedMarksStudentsDepartmentResponseSchema(BaseModel):
+    id: int
+    department_name: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+# used in get_all_marks_with_filters router function
+class PopulatedMarksStudentResponseSchema(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    registration: int
+    session: str
+    department_id: int
+    department: PopulatedMarksStudentsDepartmentResponseSchema
+    semester_id: int
+    semester: PopulatedMarksStudentsCurrentSemesterResponseSchema
+    model_config = ConfigDict(from_attributes=True)
+
+
+# used in get_all_marks_with_filters router function
+class MinimalSubjectResponseSchema(BaseModel):
+    id: int
+    subject_title: str
+    subject_code: str
+    credits: float
+    model_config = ConfigDict(from_attributes=True)
+
+
+# used in get_all_marks_with_filters router function
 class PopulatedMarksResponseSchema(MarksBaseSchema):
     id: int
     total_mark: float
     GPA: float
-    subject: MinimalSemesterResponseSchema
+    subject: MinimalSubjectResponseSchema
+    student: PopulatedMarksStudentResponseSchema
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
 
+# used in get_all_marks_with_filters router function
 class SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema(BaseModel):
     semester_id: int
     marks: list[PopulatedMarksResponseSchema]

@@ -151,15 +151,10 @@ class MarksService:
                 }
 
                 if mark_data:
-                    payload["data"] = mark_data.model_dump(
-                        mode="json",
-                        exclude={
-                            "user": {
-                                "password",
-                                "hashed_password",
-                            }
-                        },
+                    mark_data.model_dump(
+                        mode="json"
                     )
+                    payload["data"] = mark_data
 
                 request.state.audit_payload = payload
 
@@ -183,13 +178,12 @@ class MarksService:
         target_semester_id: int | None = None,
         target_department_id: int | None = None,
         session: str | None = None,
-        result_status: str | None = None,
-        is_challenged: bool | None = None
+        result_status: str | None = None
     ):
         # Base query with joins (Mark, Student, Subject table)
         statement = select(Mark).join(Student).join(Subject)
 
-        # options
+        # options with joinedloads to reduce the number of queries/Database Hits
         statement = statement.options(
             # Mark -> Student -> Department = get the department info
             joinedload(Mark.student).joinedload(Student.department),
@@ -218,16 +212,32 @@ class MarksService:
             ).where(SubjectOfferings.taught_by_id == teacher_id)
 
         # If filters are present
+        filters = []
         if target_semester_id:
-            statement = statement.where(Mark.semester_id == target_semester_id)
+            filters.append(Mark.semester_id == target_semester_id)
+            # statement = statement.where(Mark.semester_id == target_semester_id)
         if target_department_id:
-            statement = statement.where(
-                Student.department_id == target_department_id)
+            filters.append(Student.department_id == target_department_id)
+            # statement = statement.where(Student.department_id == target_department_id)
         if session:
-            statement = statement.where(Student.session == session)
+            filters.append(Student.session == session)
+            # statement = statement.where(Student.session == session)
+        if result_status:
+            filters.append(Mark.result_status == result_status)
+            # statement = statement.where(Mark.result_status == result_status)
+        # if is_challenged is not None:
+        #     # if Result Status is 'challenged'
+        #     if is_challenged:
+        #         filters.append(Mark.result_status == ResultStatus.CHALLENGED)
+        #     else:
+        #         filters.append(
+        #             Mark.result_challenge_payment_status != ResultStatus.CHALLENGED)
 
-        res = await db.execute(statement)
-        marks = res.scalars().all()
+        if filters:
+            statement = statement.where(and_(*filters))
+
+        result = await db.execute(statement)
+        marks = result.unique().scalars().all()  # remove duplicates using unique()
 
         return MarksService.group_marks_by_semester(marks)
 

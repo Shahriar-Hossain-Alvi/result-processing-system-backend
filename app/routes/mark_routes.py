@@ -51,24 +51,31 @@ async def create_new_mark(
 # get result department wise with semester and session
 @router.get(
     "/get_all_marks_with_filters",
-    # response_model=list[SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema]
+    response_model=list[SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema]
 )
 async def get_department_wise_result(
+    request: Request,
     semester_id: int | None = None,
     department_id: int | None = None,
     session: str | None = None,
     result_status: str | None = None,
-    is_challenged: bool | None = None,
     authorized_user: UserOutSchema = Depends(
         ensure_roles(["super_admin", "admin", "teacher"])),
     db: AsyncSession = Depends(get_db_session),
 
 ):
     try:
-        return await MarksService.get_all_marks_with_filters(db, authorized_user, semester_id, department_id, session, result_status, is_challenged)
+        return await MarksService.get_all_marks_with_filters(db, authorized_user, semester_id, department_id, session, result_status)
     except HTTPException:
         raise
     except Exception as e:
+        logger.critical(f"Get all marks unexpected Error: {e}")
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
