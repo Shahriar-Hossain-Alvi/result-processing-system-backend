@@ -53,7 +53,7 @@ async def create_new_mark(
     "/get_all_marks_with_filters",
     response_model=list[SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema]
 )
-async def get_department_wise_result(
+async def get_all_filtered_marks(
     request: Request,
     semester_id: int | None = None,
     department_id: int | None = None,

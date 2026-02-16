@@ -46,7 +46,7 @@ class SemesterWiseAllSubjectsMarksResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# used in get_all_marks_with_filters router function
+# used in get_all_filtered_marks router function
 class PopulatedMarksStudentsCurrentSemesterResponseSchema(BaseModel):
     id: int
     semester_name: str
@@ -54,14 +54,14 @@ class PopulatedMarksStudentsCurrentSemesterResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# used in get_all_marks_with_filters router function
+# used in get_all_filtered_marks router function
 class PopulatedMarksStudentsDepartmentResponseSchema(BaseModel):
     id: int
     department_name: str
     model_config = ConfigDict(from_attributes=True)
 
 
-# used in get_all_marks_with_filters router function
+# used in get_all_filtered_marks router function
 class PopulatedMarksStudentResponseSchema(BaseModel):
     id: int
     user_id: int
@@ -75,7 +75,7 @@ class PopulatedMarksStudentResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# used in get_all_marks_with_filters router function
+# used in get_all_filtered_marks router function
 class MinimalSubjectResponseSchema(BaseModel):
     id: int
     subject_title: str
@@ -84,7 +84,7 @@ class MinimalSubjectResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# used in get_all_marks_with_filters router function
+# used in get_all_filtered_marks router function
 class PopulatedMarksResponseSchema(MarksBaseSchema):
     id: int
     total_mark: float
@@ -96,7 +96,7 @@ class PopulatedMarksResponseSchema(MarksBaseSchema):
     model_config = ConfigDict(from_attributes=True)
 
 
-# used in get_all_marks_with_filters router function
+# used in get_all_filtered_marks router function
 class SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema(BaseModel):
     semester_id: int
     marks: list[PopulatedMarksResponseSchema]
