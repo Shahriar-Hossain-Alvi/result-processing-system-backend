@@ -62,7 +62,6 @@ async def get_all_filtered_marks(
     authorized_user: UserOutSchema = Depends(
         ensure_roles(["super_admin", "admin", "teacher"])),
     db: AsyncSession = Depends(get_db_session),
-
 ):
     try:
         return await MarksService.get_all_marks_with_filters(db, authorized_user, semester_id, department_id, session, result_status)
