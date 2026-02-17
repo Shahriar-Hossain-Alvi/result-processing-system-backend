@@ -98,6 +98,8 @@ class PopulatedMarksResponseSchema(MarksBaseSchema):
 
 # used in get_all_filtered_marks router function
 class SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema(BaseModel):
-    semester_id: int
+    department_name: str
+    semester_name: str
+    session: str
     marks: list[PopulatedMarksResponseSchema]
     model_config = ConfigDict(from_attributes=True)

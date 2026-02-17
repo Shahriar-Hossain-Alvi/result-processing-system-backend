@@ -163,13 +163,31 @@ class MarksService:
             )
 
     @staticmethod  # group marks by semester
-    def group_marks_by_semester(marks):
+    def group_marks_by_category(marks):
+        # create a dictionary where the key will be department name, semester name and session
         grouped = defaultdict(list)
-        for m in marks:
-            grouped[m.semester_id].append(m)
-            # grouped[m.student.department_id].append(m)
 
-        return [{"semester_id": sem_id, "marks": items} for sem_id, items in grouped.items()]
+        for m in marks:
+            category_key = (
+                m.student.department.department_name,
+                m.semester.semester_name,
+                m.student.session
+            )
+            grouped[category_key].append(m)
+
+        # convert the data in a list of dictionaries
+        result = []
+        for key, items in grouped.items():
+            dept_name, sem_name, session_name = key
+
+            result.append({
+                "department_name": dept_name,
+                "semester_name": sem_name,
+                "session": session_name,
+                "marks": items
+            })
+
+        return result
 
     @staticmethod  # get result for a particular department and semester and session
     async def get_all_marks_with_filters(
@@ -239,7 +257,7 @@ class MarksService:
         result = await db.execute(statement)
         marks = result.unique().scalars().all()  # remove duplicates using unique()
 
-        return MarksService.group_marks_by_semester(marks)
+        return MarksService.group_marks_by_category(marks)
 
     # @staticmethod  # get all marks for a subject with semester filtering, subject filtering
     # async def get_all_marks_for_a_student(
