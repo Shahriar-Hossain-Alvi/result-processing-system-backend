@@ -209,7 +209,7 @@ class MarksService:
             joinedload(Mark.student).joinedload(Student.semester),
             # Mark -> Subject = get the subject info
             joinedload(Mark.subject)
-        )
+        ).order_by(Subject.subject_title)
 
         # If teacher → restrict to subjects they teach
         if current_user.role == "teacher":

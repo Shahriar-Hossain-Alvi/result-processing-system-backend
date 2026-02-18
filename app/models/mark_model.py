@@ -8,10 +8,10 @@ from app.models.timestamp import TimestampMixin
 
 
 class ResultStatus(enum.Enum):
-    PUBLISHED = "published"  # no color
-    UNPUBLISHED = "unpublished"  # warning color
-    RESOLVED = "resolved"  # success color
-    CHALLENGED = "challedged"  # error color
+    PUBLISHED = "published"
+    UNPUBLISHED = "unpublished"
+    RESOLVED = "resolved"
+    CHALLENGED = "challenged"
 
 
 class Mark(Base, TimestampMixin):
