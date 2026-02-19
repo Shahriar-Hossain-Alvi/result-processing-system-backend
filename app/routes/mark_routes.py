@@ -98,20 +98,38 @@ async def get_all_filtered_marks(
 #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-# delete marks
-# @router.delete("/{mark_id}", response_model=MarksResponseSchema)
-# async def delete_a_mark(
-#     mark_id: int,
-#     authorized_user: UserOutSchema = Depends(ensure_roles(["super_admin"])),
-#     db: AsyncSession = Depends(get_db_session),
-# ):
-#     try:
-#         return await MarksService.delete_mark(db, mark_id)
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+# delete mark
+@router.delete("/{mark_id}")
+async def delete_a_mark(
+    request: Request,
+    mark_id: int,
+    authorized_user: UserOutSchema = Depends(ensure_roles(["super_admin"])),
+    db: AsyncSession = Depends(get_db_session),
+):
+    # attach action
+    request.state.action = "DELETE MARK"
+
+    try:
+        return await MarksService.delete_mark(db, mark_id, request)
+    except HTTPException:
+        raise
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
+    except Exception as e:
+        logger.critical(f"Mark delete unexpected error: {e}")
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 # get all subjects marks for a student

@@ -89,6 +89,7 @@ class PopulatedMarksResponseSchema(MarksBaseSchema):
     id: int
     total_mark: float
     GPA: float
+    semester: PopulatedMarksStudentsCurrentSemesterResponseSchema
     subject: MinimalSubjectResponseSchema
     student: PopulatedMarksStudentResponseSchema
     created_at: datetime

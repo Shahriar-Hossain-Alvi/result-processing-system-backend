@@ -426,15 +426,46 @@ class MarksService:
     #         raise HTTPException(
     #             status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
-    # @staticmethod # delete a mark
-    # async def delete_mark(db: AsyncSession, mark_id: int):
-    #     mark = await db.scalar(select(Mark).where(Mark.id == mark_id))
+    @staticmethod  # delete a mark
+    async def delete_mark(
+        db: AsyncSession,
+        mark_id: int,
+        request: Request | None = None,
+    ):
+        try:
+            mark = await db.scalar(select(Mark).where(Mark.id == mark_id))
 
-    #     if not mark:
-    #         raise HTTPException(
-    #             status_code=status.HTTP_404_NOT_FOUND, detail="Mark not found")
+            if not mark:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Mark not found")
 
-    #     await db.delete(mark)
-    #     await db.commit()
+            await db.delete(mark)
+            await db.commit()
 
-    #     return mark
+            return {
+                "message": f"Mark deleted successfully for id: {mark_id}"
+            }
+        except IntegrityError as e:
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state
+            await db.rollback()
+
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
+
+            logger.error(
+                f"Integrity error while deleting a students mark: {e}")
+            logger.error(f"Readable Error: {readable_error}")
+
+            # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
+
+                request.state.audit_payload = payload
+
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
