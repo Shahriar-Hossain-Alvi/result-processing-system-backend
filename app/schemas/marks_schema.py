@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from app.models import ResultStatus
+from app.models import ResultStatus, ResultChallengeStatus
 
 
 class MarksBaseSchema(BaseModel):
@@ -11,9 +11,13 @@ class MarksBaseSchema(BaseModel):
     student_id: int
     subject_id: int
     semester_id: int
-    result_status: ResultStatus = ResultStatus.UNPUBLISHED
-    result_challenge_payment_status: None | bool = None
-    challenged_at: datetime | None = None
+    # result_status: ResultStatus = ResultStatus.UNPUBLISHED
+    # result_challenge_status: ResultChallengeStatus = ResultChallengeStatus.NONE
+    # result_challenge_payment_status: bool | None = None
+    # challenged_at: datetime | None = None
+    # result_challenge_payment_status: bool | None = None
+    # challenge_payment_time: datetime | None = None
+    # challenge_resolved_at: datetime | None = None
 
 
 # used in create_new_mark router function
@@ -29,21 +33,10 @@ class MarksUpdateSchema(BaseModel):
     result_status: ResultStatus | None = None
     result_challenge_payment_status: bool | None = None
     challenged_at: datetime | None = None
-
-
-# class MarksResponseSchema(MarksBaseSchema):
-#     id: int
-#     total_mark: float
-#     GPA: float
-#     created_at: datetime
-#     updated_at: datetime
-#     model_config = ConfigDict(from_attributes=True)
-
-
-# class SemesterWiseAllSubjectsMarksResponseSchema(BaseModel):
-#     semester_id: int
-#     marks: list[MarksResponseSchema]
-#     model_config = ConfigDict(from_attributes=True)
+    result_challenge_status: ResultChallengeStatus | None = None
+    challenged_at: datetime | None = None
+    challenge_payment_time: datetime | None = None
+    challenge_resolved_at: datetime | None = None
 
 
 # used in get_all_filtered_marks router function
@@ -89,6 +82,12 @@ class PopulatedMarksResponseSchema(MarksBaseSchema):
     id: int
     total_mark: float
     GPA: float
+    result_status: ResultStatus
+    result_challenge_status: ResultChallengeStatus
+    result_challenge_payment_status: bool | None = None
+    challenged_at: datetime | None = None
+    challenge_payment_time: datetime | None = None
+    challenge_resolved_at: datetime | None = None
     semester: PopulatedMarksStudentsCurrentSemesterResponseSchema
     subject: MinimalSubjectResponseSchema
     student: PopulatedMarksStudentResponseSchema
