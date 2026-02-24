@@ -10,8 +10,12 @@ from app.models.timestamp import TimestampMixin
 class ResultStatus(enum.Enum):
     PUBLISHED = "published"
     UNPUBLISHED = "unpublished"
+
+
+class ResultChallengeStatus(enum.Enum):
     RESOLVED = "resolved"
     CHALLENGED = "challenged"
+    NONE = "none"
 
 
 class Mark(Base, TimestampMixin):
@@ -55,16 +59,41 @@ class Mark(Base, TimestampMixin):
         server_default=ResultStatus.UNPUBLISHED.value
     )
 
-    # Challenge Payment Status (Three-State: NULL, False, True)
+    result_challenge_status: Mapped[ResultChallengeStatus] = mapped_column(
+        sqlEnum(
+            ResultChallengeStatus,
+            name="result_challenge_status",  # enum name in database
+            native_enum=False,  # Added this to auto generate code in version file for enum
+            # "values_callable" uses the value inside the "value" in DB instead of using the capitalized name(keys)
+            values_callable=lambda x: [e.value for e in x]
+        ),
+        nullable=False,
+        default=ResultChallengeStatus.NONE,  # python/sqlalchemy level default
+        # DB level default, need the .value (not the Enum name)
+        server_default=ResultChallengeStatus.NONE.value
+    )
+
+    # Challenged at Timestamp => update when the result is challenged by student
+    challenged_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
+
+    # Challenge Payment Status
     # NULL: No challenge initiated (default).
     # False: Challenge initiated, payment pending.
     # True: Payment confirmed, teacher can resolve.
+    # update when the result is challenged by student and set this to False
     result_challenge_payment_status: Mapped[bool | None] = mapped_column(
         Boolean, nullable=True, default=None
     )
 
-    # Challenge Initiation Timestamp
-    challenged_at: Mapped[datetime | None] = mapped_column(
+    # Challenge payment Timestamp => update when the student makes the payment/admin approves after getting the payment details
+    challenge_payment_time: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
+
+    # Challenge resolve Timestamp => update when the chanllenge is resolved by teacher or admin
+    challenge_resolved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, default=None
     )
 
