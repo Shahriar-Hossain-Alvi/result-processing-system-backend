@@ -80,22 +80,36 @@ async def get_all_filtered_marks(
 
 
 # update marks
-# @router.patch("/{mark_id}", response_model=MarksResponseSchema)
-# async def update_a_mark(
-#     mark_id: int,
-#     mark_data: MarksUpdateSchema,
-#     authorized_user: UserOutSchema = Depends(
-#         ensure_roles(["super_admin", "admin", "teacher"])),
-#     db: AsyncSession = Depends(get_db_session),
-# ):
-
-#     try:
-#         return await MarksService.update_mark(db, mark_data, mark_id, authorized_user)
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+@router.patch("/{mark_id}")
+async def update_a_mark(
+    request: Request,
+    mark_id: int,
+    mark_data: MarksUpdateSchema,
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin", "teacher", "student"])),
+    db: AsyncSession = Depends(get_db_session),
+):
+    # attach action
+    request.state.action = "UPDATE MARK"
+    try:
+        return await MarksService.update_mark(db, mark_data, mark_id, authorized_user, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.critical(f"Update mark unexpected Error: {e}")
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 # delete mark

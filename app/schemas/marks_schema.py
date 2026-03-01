@@ -26,17 +26,20 @@ class MarksCreateSchema(MarksBaseSchema):
 
 
 class MarksUpdateSchema(BaseModel):
+    # student_id: int
+    # subject_id: int
     assignment_mark: float | None = None
     class_test_mark: float | None = None
     midterm_mark: float | None = None
     final_exam_mark: float | None = None
     result_status: ResultStatus | None = None
-    result_challenge_payment_status: bool | None = None
-    challenged_at: datetime | None = None
+    # also update the challenged_at for challenge and challenge_resolved_at for resolve
     result_challenge_status: ResultChallengeStatus | None = None
-    challenged_at: datetime | None = None
-    challenge_payment_time: datetime | None = None
-    challenge_resolved_at: datetime | None = None
+    # also update the challenge_payment_time
+    result_challenge_payment_status: bool | None = None
+    # challenged_at: datetime | None = None
+    # challenge_payment_time: datetime | None = None
+    # challenge_resolved_at: datetime | None = None
 
 
 # used in get_all_filtered_marks router function
