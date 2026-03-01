@@ -34,7 +34,7 @@ Copy `.env.example` -> `.env` and fill in the required values
 
 This is ONLY for editor (VSCode) dependencies — Docker does not use this venv. 
 ```
-python -m venv venv     # for windows latest/default python
+python -m venv venv (cmd) or source venv/Scripts/activate (gitbash)    # for windows latest/default python
 py -3.12 -m venv venv   # version specific venv for windows
 python3 -m venv venv    # for linux
 ```
