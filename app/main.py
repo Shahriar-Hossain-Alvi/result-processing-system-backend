@@ -11,7 +11,9 @@ from app.core.config import settings
 # setup logging
 setup_logging()
 
-app = FastAPI()
+app = FastAPI(
+    swagger_ui_parameters={"withCredentials": True}
+)
 
 app.add_middleware(
     CORSMiddleware,

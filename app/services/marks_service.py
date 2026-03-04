@@ -333,11 +333,16 @@ class MarksService:
                     mark.challenged_at = datetime.now()  # set challenged date, need for payment
                 else:
                     raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Challenge conditions are not met. (Must be published and result_challenge_status is not already challenged")
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Result is not published/Already challenged once.")
+            elif set(update_dict.keys()) != {"result_challenge_status"}:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Bad Request."
+                )
             else:
                 raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
+                    status_code=status.HTTP_400_BAD_REQUEST,
                     detail="You can only challenge result once!")
 
         # Payment update (admin and super admin only)
@@ -360,50 +365,57 @@ class MarksService:
 
         # Mark update
         if user_role in ["admin", "super_admin", "teacher"] and (user_role != "teacher" or is_teacher_authorized):
-            # update other fields (eg: result_status)
+            # update result status if provided
             if "result_status" in update_dict:
                 mark.result_status = update_dict["result_status"]
 
+            # update result challenge status if provided
             if "result_challenge_status" in update_dict:
                 mark.result_challenge_status = update_dict["result_challenge_status"]
 
-            # condition check before mark update
-            is_challenged = mark.result_challenge_status == ResultChallengeStatus.CHALLENGED
-            is_paid = mark.result_challenge_payment_status is True
-            can_update_marks = (
-                (not is_challenged)  # update normally if not challenged
-                # update if challenged and paid
-                or (is_challenged and is_paid)
-            )
+                # if the sent challenged status is Resolved, add the resolved date
+                if update_dict["result_challenge_status"] == ResultChallengeStatus.RESOLVED:
+                    mark.challenge_resolved_at = datetime.now()
 
             mark_fields = ["assignment_mark", "class_test_mark",
                            "midterm_mark", "final_exam_mark"]
 
-            if any(f in update_dict for f in mark_fields):
+            # check if any mark data is being updated
+            actual_mark_updates = [f for f in mark_fields if f in update_dict]
+
+            if actual_mark_updates:
+                # condition check before mark update
+                is_challenged = mark.result_challenge_status == ResultChallengeStatus.CHALLENGED
+                is_paid = mark.result_challenge_payment_status is True
+                can_update_marks = (
+                    (not is_challenged)  # update normally if not challenged
+                    # update if challenged and paid
+                    or (is_challenged and is_paid)
+                )
+
                 if not can_update_marks:
                     raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Payment Pending for challenged result. Please update payment status first.")
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Result is challenged & Payment is due. Cannot update marks.")
 
-            for field in mark_fields:
-                if field in update_dict:
-                    logger.success(f"updating field: {field}")
+                # now update marks
+                for field in actual_mark_updates:
                     setattr(mark, field, update_dict[field])
 
-            # calculate gpa
-            MarksService.compute_total_marks_and_gpa(mark)
+                # calculate gpa
+                MarksService.compute_total_marks_and_gpa(mark)
 
-            # Resolve challenge status (if marks updated when challenged and paid)
-            if mark.result_challenge_status == ResultChallengeStatus.CHALLENGED:
-                mark.result_challenge_status = ResultChallengeStatus.RESOLVED
-                mark.challenge_resolved_at = datetime.now()
+                # Resolve challenge status (if marks updated when challenged and paid)
+                if mark.result_challenge_status == ResultChallengeStatus.CHALLENGED and is_paid:
+                    mark.result_challenge_status = ResultChallengeStatus.RESOLVED
+                    mark.challenge_resolved_at = datetime.now()
 
         try:
             await db.commit()
             await db.refresh(mark)
 
             return {
-                "message": f"Mark: {mark.id} updated successfully",
+                "message": f"Mark status updated",
             }
         except IntegrityError as e:
             # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state
@@ -475,96 +487,3 @@ class MarksService:
                 raise DomainIntegrityError(
                     error_message=readable_error, raw_error=raw_error_message
                 )
-
-
-# if "result_challenge_status" in update_dict:
-                # new_status = update_dict["result_challenge_status"]
-
-                # Challenge result when its published
-                # if new_status == ResultChallengeStatus.CHALLENGED and mark.result_status.value == ResultStatus.PUBLISHED:
-                # set result is challenged
-                # mark.result_challenge_status= ResultChallengeStatus.CHALLENGED
-                # mark.result_challenge_payment_status = False  # set payment status is pending
-                # mark.challenged_at = datetime.now()  # set challenged date, need for payment
-                # show error if student tries to update more than 1 field
-                # if len(update_dict) > 1:
-                # raise HTTPException(
-                #             status_code = status.HTTP_403_FORBIDDEN,
-                #             detail = "You are not authorized to update more than one field.")
-                #             # show error if student tries to challenge when result_status is "unpublished", "resolved" or already "challenged"
-                #             else:
-                #             raise HTTPException(
-                #         status_code = status.HTTP_403_FORBIDDEN,
-                #         detail = "You can only challenge result once!")
-                #         # show error if student tries to update other fields
-                #         else:
-                #         raise HTTPException(
-                #     status_code =status.HTTP_403_FORBIDDEN, detail="you are not authorized to update this fields.")
-
-                # if payment status is updating make sure user is admin
-                #     if "result_challenge_payment_status" in update_dict:
-                #     if (user_role not in ["admin", "super_admin"]):
-                # raise HTTPException(
-                #     status_code = status.HTTP_403_FORBIDDEN,
-                #     detail ="Only admins can update payment status.")
-
-                #     new_payment_status = update_dict["result_challenge_payment_status"]
-
-                #     # change payment status only if result is challenged
-                #     if mark.result_challenge_status.value == ResultChallengeStatus.CHALLENGED:
-                #     mark.result_challenge_payment_status = new_payment_status
-                #     else:
-                #     raise HTTPException(
-                #     status_code=status.HTTP_403_FORBIDDEN,
-                #     detail="You can only update payment status when result is challenged!")
-
-                #     # Update rest of the updatable fields/Marks by admin/teacher
-                #     if user_role in ["admin", "teacher", "super_admin"] and (user_role == "admin" or is_teacher_authorized):
-                #     can_update_marks_data = (
-                # mark.result_challenge_status.value != ResultChallengeStatus.CHALLENGED or
-                # mark.result_challenge_payment_status is True
-
-            # if can_update_marks_data:
-            #     # compute or calculate marks if provided in update data
-            # mark_fields_updated = False
-            #     for field in ["assignment_mark", "class_test_mark", "midterm_mark", "final_exam_mark"]:
-            # if field in update_dict:
-            # setattr(mark, field, update_dict[field])
-            #             mark_fields_updated = True
-
-            #     if mark_fields_updated:
-            # MarksService.compute_total_marks_and_gpa(mark)
-
-            #         # if result_status is challenged and mark is updated then resolve the status
-            #         if mark.result_challenge_status.value == ResultChallengeStatus.CHALLENGED:
-            # mark.result_challenge_status = ResultChallengeStatus.RESOLVED
-
-            #     elif (f in update_dict for f in ["assignment_mark", "class_test_mark", "midterm_mark", "final_exam_mark"]):
-                # if tries to update marks when result is challenged and payment is pending
-
-         # raise HTTPException(
-            #         status_code = status.HTTP_403_FORBIDDEN,
-            #         detail = "Cannot update marks data while result is challenged and payment is pending."
-            #     )
-
-            #     if "result_challenge_status" in update_dict and user_role in ["admin", "super_admin", "teacher"]:
-            #     new_status = update_dict["result_challenge_status"]
-            #     if new_status == ResultChallengeStatus.CHALLENGED and user_role != "student":
-            #     raise HTTPException(
-            #         status_code = status.HTTP_403_FORBIDDEN,
-            #         detail = "Only student can challenge result."
-            #     )
-            #     mark.result_challenge_status = new_status
-                # if update_data.assignment_mark is not None:
-                #     mark.assignment_mark = update_data.assignment_mark
-
-                # if update_data.class_test_mark is not None:
-                #     mark.class_test_mark = update_data.class_test_mark
-
-                # if update_data.midterm_mark is not None:
-                #     mark.midterm_mark = update_data.midterm_mark
-
-                # if update_data.final_exam_mark is not None:
-                #     mark.final_exam_mark = update_data.final_exam_mark
-
-                # MarksService.compute_total_marks_and_gpa(mark)
