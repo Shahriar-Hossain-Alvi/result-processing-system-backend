@@ -10,7 +10,7 @@ class TokenInjectionFromCookieToHeaderMiddleware(BaseHTTPMiddleware):
         # get token from cookie
         access_token = request.cookies.get("access_token")
 
-        if access_token:
+        if access_token and access_token != "undefined":
             # Set it to Authorization header
             if "authorization" not in request.headers:
                 logger.info("Injecting token to header")
