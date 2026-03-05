@@ -1,12 +1,14 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from fastapi import HTTPException, status, Response, Request
+from jose import JWTError
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import verify_password, create_access_token
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
+from app.core.jwt import create_refresh_token, decode_refresh_token
 from app.models import User
 from app.core import settings
 from sqlalchemy.exc import IntegrityError
@@ -43,19 +45,34 @@ async def login_user(
 
         # after validating the user, create access token
         access_token = create_access_token(user.username)
+        refresh_token = create_refresh_token(user.username)
 
-        # set the httponly cookie
+        # set the access token in httponly cookie
         response.set_cookie(
             key="access_token",  # cookie name
             value=access_token,
             httponly=True,  # prevents access from javascript in the browser
             # samesite="lax",  # CSRF defense. lax will not work from localhost -> render
-            # changing samesite to none to fix render issue but it is not secure so we need to add secure=True
+            # changing samesite to none to fix render issue but it is not secure SO, we need to add secure=True
             samesite="none",
             secure=True,  # Must be True if samesite="none"
             expires=datetime.now(
                 timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         )
+
+        # set refresh token in httponly cookie
+        response.set_cookie(
+            key="refresh_token",  # cookie name
+            value=refresh_token,
+            httponly=True,  # prevents access from javascript in the browser
+            # samesite="lax",  # CSRF defense. lax will not work from localhost -> render
+            # changing samesite to none to fix render issue but it is not secure SO, we need to add secure=True
+            samesite="none",
+            secure=True,  # Must be True if samesite="none"
+            expires=datetime.now(
+                timezone.utc) + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+        )
+
         logger.success("Login successful")
         return {
             "message": "Login successful"
@@ -84,13 +101,65 @@ async def login_user(
             error_message=readable_error, raw_error=raw_error_message)
 
 
+async def refresh_access_token(request: Request, response: Response):
+
+    refresh_token = request.cookies.get("refresh_token")
+
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing refresh token",
+            headers={"WWW-Authenticate": "Bearer"})
+
+    try:
+        # this will raise ExpiredSignatureError if token is expired
+        payload = decode_refresh_token(refresh_token)
+
+        if not payload or "sub" not in payload:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token",
+                headers={"WWW-Authenticate": "Bearer"})
+
+        username = str(payload.get("sub"))  # get the username from sub
+
+        # create new access token
+        new_access_token = create_access_token(subject=username)
+
+        # set the httponly cookie
+        response.set_cookie(
+            key="access_token",  # cookie name
+            value=new_access_token,
+            httponly=True,  # prevents access from javascript in the browser
+            # samesite="lax",  # CSRF defense. lax will not work from localhost -> render
+            # changing samesite to none to fix render issue but it is not secure so we need to add secure=True
+            samesite="none",
+            secure=True,  # Must be True if samesite="none"
+            expires=datetime.now(
+                timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        )
+
+        return {"message": "Access token refreshed"}
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
+
 async def logout_user(response: Response):
 
     response.delete_cookie(
         key="access_token",
         httponly=True,
-        samesite="lax"
+        samesite="none",
+        secure=True
+    )
+
+    response.delete_cookie(
+        key="refresh_token",
+        httponly=True,
+        samesite="none",
+        secure=True
     )
     logger.success("Cookie deleted")
 
-    return {"message": "Logout successful"}
+    return {"message": "Logged out"}

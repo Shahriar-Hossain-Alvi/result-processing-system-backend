@@ -234,24 +234,12 @@ class MarksService:
         filters = []
         if target_semester_id:
             filters.append(Mark.semester_id == target_semester_id)
-            # statement = statement.where(Mark.semester_id == target_semester_id)
         if target_department_id:
             filters.append(Student.department_id == target_department_id)
-            # statement = statement.where(Student.department_id == target_department_id)
         if session:
             filters.append(Student.session == session)
-            # statement = statement.where(Student.session == session)
         if result_status:
             filters.append(Mark.result_status == result_status)
-            # statement = statement.where(Mark.result_status == result_status)
-        # if is_challenged is not None:
-        #     # if Result Status is 'challenged'
-        #     if is_challenged:
-        #         filters.append(Mark.result_status == ResultStatus.CHALLENGED)
-        #     else:
-        #         filters.append(
-        #             Mark.result_challenge_payment_status != ResultStatus.CHALLENGED)
-
         if filters:
             statement = statement.where(and_(*filters))
 

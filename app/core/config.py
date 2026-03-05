@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     SYNC_DATABASE_URL: str
     SECRET_KEY: str
     ALGORITHM: str = "HS256"  # hash algorithm for jwt
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 180
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 604800
     CLOUDINARY_CLOUD_NAME: str
     CLOUDINARY_API_KEY: str
     CLOUDINARY_API_SECRET: str
