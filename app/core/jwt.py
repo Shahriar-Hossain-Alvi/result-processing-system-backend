@@ -31,6 +31,27 @@ def create_access_token(
     return token
 
 
+def create_refresh_token(
+        subject: str,  # username(email)
+        expires_delta: Optional[timedelta] = None
+) -> str:
+    # create jwt refresh token to re-generate the access token
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(
+        minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES))
+
+    payload = {
+        "sub": str(subject),
+        "iat": int(datetime.now(timezone.utc).timestamp()),
+        "exp": int(expire.timestamp()),
+    }
+
+    # refresh token
+    refresh_token = jwt.encode(payload, settings.SECRET_KEY,
+                               algorithm=settings.ALGORITHM)
+
+    return refresh_token
+
+
 def decode_access_token(token: str | None) -> Dict[str, Any] | None:
     if token is None:
         return None
@@ -42,6 +63,27 @@ def decode_access_token(token: str | None) -> Dict[str, Any] | None:
         logger.error("Expired token")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"www-Authentication": "Bearer"},
+        )
+
+
+def decode_refresh_token(token: str | None) -> Dict[str, Any] | None:
+    if token is None:
+        return None
+
+    try:
+        # returns the payload (sub, iat, exp)
+        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    except ExpiredSignatureError:
+        logger.error("Expired refresh token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh Token expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
     except JWTError as e:

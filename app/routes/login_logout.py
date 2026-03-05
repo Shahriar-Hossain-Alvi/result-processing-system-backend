@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
-from app.services.user_login_logout import login_user, logout_user
+from app.services.user_login_logout import login_user, logout_user, refresh_access_token
 from app.db.db import get_db_session
 
 
@@ -41,6 +41,33 @@ async def login(
                 "exception_type": type(e).__name__,
             }
 
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+
+
+@router.post("/refresh")
+async def refresh_token(
+    request: Request,
+    response: Response
+):
+    try:
+        return await refresh_access_token(request, response)
+    except DomainIntegrityError as de:
+        logger.error(f"Integrity error while refresh token {str(de)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=de.error_message
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.critical(f"Unexpected Error: {e}")
+        logger.critical("LOGIN FAILED FROM ROUTER")
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
