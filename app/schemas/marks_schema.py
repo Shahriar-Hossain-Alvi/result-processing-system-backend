@@ -110,7 +110,7 @@ class SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema(BaseModel):
 
 
 # used in generate_single_students_single_semester_result router function
-class ResultResponseSchema(BaseModel):
+class MarkDetailsSchema(BaseModel):
     id: int
     assignment_mark: float
     class_test_mark: float
@@ -118,10 +118,10 @@ class ResultResponseSchema(BaseModel):
     final_exam_mark: float
     total_mark: float
     GPA: float
-    student_id: int
-    student: PopulatedMarksStudentResponseSchema
-    semester_id: int
-    semester: PopulatedMarksStudentsCurrentSemesterResponseSchema
+    # student_id: int
+    # student: PopulatedMarksStudentResponseSchema
+    # semester_id: int
+    # semester: PopulatedMarksStudentsCurrentSemesterResponseSchema
     subject_id: int
     subject: MinimalSubjectResponseSchema
     model_config = ConfigDict(from_attributes=True)
@@ -129,9 +129,11 @@ class ResultResponseSchema(BaseModel):
 
 # used in generate_single_students_single_semester_result router function
 class GenerateSingleStudentsSingleSemesterResultResponseSchema(BaseModel):
-    is_published: bool
     published_count: int
     total_subjects: int
-    result: list[ResultResponseSchema] | None = None
+    student_info: PopulatedMarksStudentResponseSchema | None = None
+    semester_info: PopulatedMarksStudentsCurrentSemesterResponseSchema | None = None
+    department_info: PopulatedMarksStudentsDepartmentResponseSchema | None = None
+    result: list[MarkDetailsSchema] | None = None
     message: str | None = None
     model_config = ConfigDict(from_attributes=True)

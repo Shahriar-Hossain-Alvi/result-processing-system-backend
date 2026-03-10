@@ -154,14 +154,14 @@ async def delete_a_mark(
 async def generate_single_students_single_semester_result(
     request: Request,
     registration: str,
-    semster_id: int,
+    semester_id: int,
     department_id: int,
     authorized_user: UserOutSchema = Depends(ensure_roles(
         ["super_admin", "student", "admin", "teacher"])),
     db: AsyncSession = Depends(get_db_session),
 ):
     try:
-        return await MarksService.generate_results(db, registration, semster_id, department_id, request)
+        return await MarksService.generate_results(db, registration, semester_id, department_id, request)
     except HTTPException:
         raise
     except Exception as e:

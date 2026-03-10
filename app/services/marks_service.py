@@ -468,7 +468,6 @@ class MarksService:
 
             if not student:
                 return {
-                    "is_published": False,
                     "message": "Student not found",
                     "total_subjects": 0,
                     "published_count": 0
@@ -477,7 +476,6 @@ class MarksService:
             # check if the student is from selected department
             if student.department_id != department_id:
                 return {
-                    "is_published": False,
                     "message": "This student doesn't belong to this department",
                     "total_subjects": 0,
                     "published_count": 0
@@ -495,7 +493,6 @@ class MarksService:
 
             if total_offered == 0:
                 return {
-                    "is_published": False,
                     "published_count": 0,
                     "total_subjects": total_offered,
                     "message": "No subjects offered in this semester yet"
@@ -520,16 +517,23 @@ class MarksService:
 
             if len(result) < total_offered:
                 return {
-                    "is_published": False,
                     "published_count": len(result),
                     "total_subjects": total_offered,
-                    "message": "Result is under processing. All subjects are not published yet",
+                    "message": "Result is under processing. Please try again later",
                 }
+
+            first_record = result[0]
+            student_info = first_record.student
+            semester_info = first_record.semester
+            department_info = first_record.student.department
 
             return {
                 "is_published": True,
                 "published_count": len(result),
                 "total_subjects": total_offered,
+                "student_info": student_info,
+                "semester_info": semester_info,
+                "department_info": department_info,
                 "result": result,
             }
         except IntegrityError as e:
