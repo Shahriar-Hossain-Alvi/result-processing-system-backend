@@ -20,6 +20,9 @@ from app.utils import check_existence
 from sqlalchemy.orm import joinedload
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+import base64
+from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 
 
 class MarksService:
@@ -527,14 +530,72 @@ class MarksService:
             semester_info = first_record.semester
             department_info = first_record.student.department
 
+            # create a pdf file
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", "B", size=16)
+            pdf.cell(200, 10, text="Result Sheet",
+                     new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+            pdf.ln(10)
+
+            # font size of student info and student data
+            pdf.set_font("Arial", size=12)
+            pdf.cell(
+                200, 8, text=f"Name: {student_info.name}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.cell(
+                200, 8, text=f"Registration:{student_info.registration}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.cell(
+                200, 8, text=f"Department: {department_info.department_name}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.cell(
+                200, 8, text=f"Semester: {str(semester_info.semester_number)}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.cell(
+                200, 8, text=f"Session: {student_info.session}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.ln(5)
+
+            # Marks data
+            pdf.set_font("Arial", size=12)
+            pdf.cell(60, 10, "Subject", border=1)
+            pdf.cell(25, 10, "Code", border=1)
+            pdf.cell(25, 10, "Credits", border=1)
+            pdf.cell(25, 10, "Assignment", border=1)
+            pdf.cell(25, 10, "Class Test", border=1)
+            pdf.cell(25, 10, "Midterm", border=1)
+            pdf.cell(25, 10, "Final", border=1)
+            pdf.cell(25, 10, "GPA", border=1,
+                     new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+            pdf.set_font("Arial", size=11)
+            for mark in result:
+                pdf.cell(60, 10, text=str(
+                    mark.subject.subject_title)[:30], border=1)
+                pdf.cell(25, 10, text=str(mark.subject.subject_code), border=1)
+                pdf.cell(25, 10, text=str(mark.subject.credits), border=1)
+                pdf.cell(25, 10, text=str(mark.assignment_mark), border=1)
+                pdf.cell(25, 10, text=str(mark.class_test_mark), border=1)
+                pdf.cell(25, 10, text=str(mark.midterm_mark), border=1)
+                pdf.cell(25, 10, text=str(mark.final_exam_mark), border=1)
+                pdf.cell(25, 10, text=str(mark.GPA), border=1)
+
+            # convert the pdf into base64
+            pdf_output = pdf.output()
+
+            #  if output is not bytearray
+            if isinstance(pdf_output, bytearray):
+                pdf_bytes = bytes(pdf_output)
+            else:
+                pdf_bytes = pdf_output
+
+            # if pdf is generated, include the pdf in the response
+            pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")
+
             return {
-                "is_published": True,
                 "published_count": len(result),
                 "total_subjects": total_offered,
                 "student_info": student_info,
                 "semester_info": semester_info,
                 "department_info": department_info,
                 "result": result,
+                "pdf_base64": pdf_base64
             }
         except IntegrityError as e:
             # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state
@@ -546,6 +607,7 @@ class MarksService:
 
             logger.error(f"Integrity error while creating student: {e}")
             logger.error(f"Readable Error: {readable_error}")
+            logger.error(f"PDF generation failed")
 
             # attach audit payload safely
             if request:
