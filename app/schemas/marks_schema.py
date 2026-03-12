@@ -136,4 +136,5 @@ class GenerateSingleStudentsSingleSemesterResultResponseSchema(BaseModel):
     department_info: PopulatedMarksStudentsDepartmentResponseSchema | None = None
     result: list[MarkDetailsSchema] | None = None
     message: str | None = None
+    pdf_base64: str | None = None
     model_config = ConfigDict(from_attributes=True)
