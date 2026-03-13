@@ -102,7 +102,9 @@ class PopulatedMarksResponseSchema(MarksBaseSchema):
 
 # used in get_all_filtered_marks router function
 class SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema(BaseModel):
+    department_id: int
     department_name: str
+    semester_id: int
     semester_name: str
     session: str
     marks: list[PopulatedMarksResponseSchema]
@@ -138,3 +140,10 @@ class GenerateSingleStudentsSingleSemesterResultResponseSchema(BaseModel):
     message: str | None = None
     pdf_base64: str | None = None
     model_config = ConfigDict(from_attributes=True)
+
+
+# used in batch_publish_marks router function
+class BatchResultPublishSchema(BaseModel):
+    semester_id: int
+    department_id: int
+    session: str

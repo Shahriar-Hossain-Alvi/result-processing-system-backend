@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Annotated, Any
 from loguru import logger
-from sqlalchemy import and_, func, join, select
+from sqlalchemy import and_, func, join, select, update
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models import Mark, ResultStatus
@@ -14,7 +14,7 @@ from app.models.subject_model import Subject
 from app.models.subject_offerings_model import SubjectOfferings
 from app.models.teacher_model import Teacher
 from app.models.user_model import User
-from app.schemas.marks_schema import MarksCreateSchema, MarksUpdateSchema
+from app.schemas.marks_schema import BatchResultPublishSchema, MarksCreateSchema, MarksUpdateSchema
 from app.schemas.user_schema import UserOutSchema
 from app.utils import check_existence
 from sqlalchemy.orm import joinedload
@@ -172,20 +172,26 @@ class MarksService:
         grouped = defaultdict(list)
 
         for m in marks:
+            # extract the category key from every mark using a tuple
             category_key = (
+                m.student.department_id,
                 m.student.department.department_name,
+                m.semester_id,
                 m.semester.semester_name,
                 m.student.session
             )
+            # add the mark to the corresponding category
             grouped[category_key].append(m)
 
         # convert the data in a list of dictionaries
         result = []
         for key, items in grouped.items():
-            dept_name, sem_name, session_name = key
+            dept_id, dept_name, sem_id, sem_name, session_name = key
 
             result.append({
+                "department_id": dept_id,
                 "department_name": dept_name,
+                "semester_id": sem_id,
                 "semester_name": sem_name,
                 "session": session_name,
                 "marks": items
@@ -659,6 +665,137 @@ class MarksService:
                     "raw_error": raw_error_message,
                     "readable_error": readable_error,
                 }
+
+                request.state.audit_payload = payload
+
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
+
+    @staticmethod  # batch publish marks
+    async def batch_publish_marks(
+        db: AsyncSession,
+        batch_publish_data: BatchResultPublishSchema,
+        request: Request | None = None
+    ):
+        try:
+            # 1. check total students in the department for the current session
+            total_student_stmt = select(func.count(Student.id)).where(
+                and_(
+                    Student.department_id == batch_publish_data.department_id,
+                    Student.session == batch_publish_data.session
+                )
+            )
+
+            total_student = (await db.execute(total_student_stmt)).scalar() or 0
+
+            if total_student == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="No student found in the department for the current session."
+                )
+
+            # 2. check total offered subject
+            total_offered_stmt = select(func.count(SubjectOfferings.id))\
+                .join(Subject, SubjectOfferings.subject_id == Subject.id)\
+                .where(
+                    and_(
+                        SubjectOfferings.department_id == batch_publish_data.department_id,
+                        Subject.semester_id == batch_publish_data.semester_id
+                    )
+            )
+            total_offered = (await db.execute(total_offered_stmt)).scalar() or 0
+
+            if total_offered == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="No subject offered in the department for the current semester."
+                )
+
+            # 3. check total inserted marks
+            total_inserted_marks_stmt = select(func.count(Mark.id))\
+                .join(Student, Mark.student_id == Student.id)\
+                .where(
+                    and_(
+                        Mark.semester_id == batch_publish_data.semester_id,
+                        Student.session == batch_publish_data.session,
+                        Student.department_id == batch_publish_data.department_id
+                    )
+            )
+            total_inserted_marks = (await db.execute(total_inserted_marks_stmt)).scalar() or 0
+            expected_total_marks = total_offered * total_student
+
+            # 4. total marks to be published = total student * total offered subjects in this semester
+            if total_inserted_marks != expected_total_marks:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"All marks are not inserted. Expected: {expected_total_marks}, Inserted: {total_inserted_marks}")
+
+            # 5. if all marks are inserted, then publish the marks as bulk update
+            update_stmt = (
+                update(Mark)
+                .where(
+                    Mark.id.in_(
+                        select(Mark.id)
+                        .join(Student, Mark.student_id == Student.id)
+                        .where(
+                            and_(
+                                Mark.semester_id == batch_publish_data.semester_id,
+                                Student.session == batch_publish_data.session,
+                                Student.department_id == batch_publish_data.department_id,
+                                Mark.result_status != ResultStatus.PUBLISHED
+                            )
+                        )
+                    )
+                ).values(result_status=ResultStatus.PUBLISHED)
+                .execution_options(synchronize_session=False)
+            )
+
+            await db.execute(update_stmt)
+            await db.commit()
+
+            return {"detail": f"Successfullt updated {total_inserted_marks} marks."}
+
+            # statement = select(Mark).where(
+            #     and_(
+            #         Mark.semester_id == batch_publish_data.semester_id,
+            #         Mark.student.session == batch_publish_data.session,
+            #         Mark.student.department_id == batch_publish_data.department_id
+            #     )
+            # )
+
+            # all_marks = (await db.execute(statement)).scalars().all()
+
+            # if all_marks:
+            #     for mark in all_marks:
+            #         mark.result_status = ResultStatus.PUBLISHED
+
+            #     await db.commit()
+            #     return {"detail": "Marks published successfully."}
+
+        except IntegrityError as e:
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state
+            await db.rollback()
+
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
+
+            logger.error(
+                f"Integrity error while publishing semester result in batches: {e}")
+            logger.error(f"Readable Error: {readable_error}")
+
+           # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
+
+                if batch_publish_data:
+                    payload["data"] = batch_publish_data.model_dump(
+                        mode="json"
+                    )
 
                 request.state.audit_payload = payload
 
