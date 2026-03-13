@@ -532,58 +532,102 @@ class MarksService:
 
             # create a pdf file
             pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", "B", size=16)
-            pdf.cell(200, 10, text="Result Sheet",
-                     new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
-            pdf.ln(10)
+            pdf.add_page()  # add a new page
 
-            # font size of student info and student data
-            pdf.set_font("Arial", size=12)
-            pdf.cell(
-                200, 8, text=f"Name: {student_info.name}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            pdf.cell(
-                200, 8, text=f"Registration:{student_info.registration}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            pdf.cell(
-                200, 8, text=f"Department: {department_info.department_name}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            pdf.cell(
-                200, 8, text=f"Semester: {str(semester_info.semester_number)}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            pdf.cell(
-                200, 8, text=f"Session: {student_info.session}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.set_fill_color(33, 37, 41)
+            pdf.set_text_color(0, 0, 0)
+
+            # font size of department name
+            pdf.set_font("Arial", "B", size=16)
+
+            # department name in center
+            pdf.cell(190, 10, text=f"{department_info.department_name.upper()}",
+                     new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+
+            # font size of semester name & session
+            pdf.set_font("Arial", "B", size=14)
+
+            # semester & session in center
+            pdf.cell(190, 8, text=f"{semester_info.semester_name.capitalize()} - (Session: {student_info.session})",
+                     new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+
             pdf.ln(5)
 
-            # Marks data
-            pdf.set_font("Arial", size=12)
-            pdf.cell(60, 10, "Subject", border=1)
-            pdf.cell(25, 10, "Code", border=1)
-            pdf.cell(25, 10, "Credits", border=1)
-            pdf.cell(25, 10, "Assignment", border=1)
-            pdf.cell(25, 10, "Class Test", border=1)
-            pdf.cell(25, 10, "Midterm", border=1)
-            pdf.cell(25, 10, "Final", border=1)
-            pdf.cell(25, 10, "GPA", border=1,
+            # font size of result sheet text
+            pdf.set_font("Arial", "B", size=14)
+
+            pdf.set_text_color(44, 62, 80)
+
+            # result sheet in center
+            pdf.cell(200, 10, text="Result Sheet",
+                     new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+            pdf.set_draw_color(44, 62, 80)
+            pdf.line(85, 42, 125, 42)  # horizontal line under result sheet
+
+            pdf.ln(10)
+
+            # student info table design
+            # left = Labels and right = Data
+            info_data = [
+                ("Student Name", student_info.name),
+                ("Registration No.", student_info.registration),
+                ("Session", student_info.session),
+                ("Semester", str(semester_info.semester_number)),
+                ("Department", department_info.department_name)
+            ]
+
+            # font size of student info and student data
+            for label, value in info_data:
+                pdf.cell(40, 8, text=label, border="LTB")
+                pdf.cell(
+                    150, 8, text=f": {value}", border="RTB", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+            pdf.ln(10)
+
+            # Marks table headers
+            # colum width calculation (total 190)
+            w_sub = 65
+            w_code = 25
+            w_credits = 15
+            w_marks = 17  # assignment, class test, midterm, final
+            w_gpa = 15
+
+            # headers font size
+            pdf.set_font("Arial", size=10)
+            pdf.set_fill_color(240, 240, 240)
+
+            pdf.cell(w_sub, 10, "Subject", border=1, fill=True)
+            pdf.cell(w_code, 10, "Code", border=1, fill=True)
+            pdf.cell(w_credits, 10, "Credits", border=1, fill=True)
+            pdf.cell(w_marks, 10, "CT", border=1, fill=True)
+            pdf.cell(w_marks, 10, "Assn", border=1, fill=True)
+            pdf.cell(w_marks, 10, "Mid", border=1, fill=True)
+            pdf.cell(w_marks, 10, "Final", border=1, fill=True)
+            pdf.cell(w_gpa, 10, "GPA", border=1, fill=True,
                      new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-            pdf.set_font("Arial", size=11)
+            # marks table data
+            pdf.set_font("Arial", size=10)
             for mark in result:
-                pdf.cell(60, 10, text=str(
+                pdf.cell(w_sub, 10, text=str(
                     mark.subject.subject_title)[:30], border=1)
-                pdf.cell(25, 10, text=str(mark.subject.subject_code), border=1)
-                pdf.cell(25, 10, text=str(mark.subject.credits), border=1)
-                pdf.cell(25, 10, text=str(mark.assignment_mark), border=1)
-                pdf.cell(25, 10, text=str(mark.class_test_mark), border=1)
-                pdf.cell(25, 10, text=str(mark.midterm_mark), border=1)
-                pdf.cell(25, 10, text=str(mark.final_exam_mark), border=1)
-                pdf.cell(25, 10, text=str(mark.GPA), border=1)
+                pdf.cell(w_code, 10, text=str(
+                    mark.subject.subject_code), border=1)
+                pdf.cell(w_credits, 10, text=str(
+                    mark.subject.credits), border=1)
+                pdf.cell(w_marks, 10, text=str(mark.assignment_mark), border=1)
+                pdf.cell(w_marks, 10, text=str(mark.class_test_mark), border=1)
+                pdf.cell(w_marks, 10, text=str(mark.midterm_mark), border=1)
+                pdf.cell(w_marks, 10, text=str(mark.final_exam_mark), border=1)
+                pdf.cell(w_gpa, 10, text=str(mark.GPA), border=1,
+                         new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
             # convert the pdf into base64
             pdf_output = pdf.output()
 
             #  if output is not bytearray
-            if isinstance(pdf_output, bytearray):
-                pdf_bytes = bytes(pdf_output)
-            else:
-                pdf_bytes = pdf_output
+            pdf_bytes = bytes(pdf_output) if isinstance(
+                pdf_output, bytearray) else pdf_output
 
             # if pdf is generated, include the pdf in the response
             pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")
