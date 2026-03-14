@@ -1,7 +1,7 @@
 from datetime import datetime
 from app.db.base import Base
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from sqlalchemy import Integer, Float, ForeignKey, UniqueConstraint, Boolean, DateTime
+from sqlalchemy import Index, Integer, Float, ForeignKey, UniqueConstraint, Boolean, DateTime
 import enum
 from sqlalchemy import Enum as sqlEnum
 from app.models.timestamp import TimestampMixin
@@ -29,6 +29,11 @@ class Mark(Base, TimestampMixin):
             "semester_id",
             name="unique_mark_record"
         ),
+        Index(
+            "ix_marks_query_perf",
+            "semester_id",
+            "result_status"
+        )
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
