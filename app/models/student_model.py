@@ -13,14 +13,15 @@ class Student(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
 
     registration: Mapped[str] = mapped_column(
-        String(100), nullable=False, unique=True)
+        String(100), nullable=False, unique=True, index=True)
 
-    session: Mapped[str] = mapped_column(String(50), nullable=False)
+    session: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=True)
 
     # Relationship with Department
     department_id: Mapped[int] = mapped_column(Integer, ForeignKey(
         # set null if department is deleted
-        "departments.id", ondelete="SET NULL"), nullable=True)
+        "departments.id", ondelete="SET NULL"), nullable=True, index=True)
 
     department: Mapped["Department"] = relationship(  # type: ignore
         back_populates="students")

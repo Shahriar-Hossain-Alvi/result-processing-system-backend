@@ -96,7 +96,7 @@ class MarksService:
         if existing_mark:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="A mark already exist for this student, subject, semester.")
+                detail="Mark for this subject+student+semester already exists.")
 
         # check if the student exists, throws error if not
         await check_existence(Student, db, mark_data.student_id, "Student")
@@ -219,7 +219,7 @@ class MarksService:
             joinedload(Mark.student).joinedload(Student.semester),
             # Mark -> Subject = get the subject info
             joinedload(Mark.subject)
-        ).order_by(Subject.subject_title)
+        ).order_by(Mark.created_at.desc())
 
         # If teacher → restrict to subjects they teach
         if current_user.role == "teacher":
@@ -754,7 +754,7 @@ class MarksService:
             await db.execute(update_stmt)
             await db.commit()
 
-            return {"detail": f"Successfullt updated {total_inserted_marks} marks."}
+            return {"message": f"Successfullt updated {total_inserted_marks} marks."}
 
             # statement = select(Mark).where(
             #     and_(
