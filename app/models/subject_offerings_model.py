@@ -18,14 +18,14 @@ class SubjectOfferings(Base, TimestampMixin):
 
     # relationship with subject
     subject_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("subjects.id", ondelete="CASCADE"))
+        Integer, ForeignKey("subjects.id", ondelete="CASCADE"), index=True)
 
     subject: Mapped["Subject"] = relationship(  # type: ignore
         back_populates="subject_offerings")
 
     # relationship with department
     department_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("departments.id", ondelete="CASCADE"))
+        Integer, ForeignKey("departments.id", ondelete="CASCADE"), index=True)
 
     department: Mapped["Department"] = relationship(  # type: ignore
         back_populates="subject_offerings")
