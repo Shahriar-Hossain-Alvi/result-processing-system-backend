@@ -38,13 +38,14 @@ class StudentCreateSchema(StudentBaseSchema):
 #     updated_at: datetime
 #     model_config = ConfigDict(from_attributes=True)
 
-# TODO: create studet profile and use this schema to get students data
-# class StudentResponseSchemaNested(StudentBaseSchema):
-#     id: int
-#     created_at: datetime
-#     updated_at: datetime
-#     user: UserOutSchema
-#     model_config = ConfigDict(from_attributes=True)
+
+# used in get_single_student router function to get students profile data
+class StudentProfileResponseSchemaNested(StudentBaseSchema):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    user: UserOutSchema
+    model_config = ConfigDict(from_attributes=True)
 
 # TODO: create studet profile to update users these data by self
 # class StudentUpdateSchema(BaseModel):

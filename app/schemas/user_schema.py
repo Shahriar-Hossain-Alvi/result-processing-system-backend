@@ -59,7 +59,7 @@ class StudentResponseSchemaToGetAllUser(BaseModel):
     permanent_address: str
     date_of_birth: date | None = None
     photo_url: str
-    photo_public_id: str
+    # photo_public_id: str
     model_config = ConfigDict(from_attributes=True)
     created_at: datetime
     updated_at: datetime

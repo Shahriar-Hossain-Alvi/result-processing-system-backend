@@ -83,6 +83,7 @@ async def get_single_user(
         ensure_roles(["super_admin", "admin"])),
     db: AsyncSession = Depends(get_db_session)
 ):
+
     try:
         return await UserService.get_user(db, id)
     except HTTPException:

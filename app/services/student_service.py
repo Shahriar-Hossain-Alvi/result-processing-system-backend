@@ -1,7 +1,7 @@
 from typing import Any
 from loguru import logger
 from sqlalchemy import or_, select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
@@ -171,22 +171,22 @@ class StudentService:
 
     #     return students.all()
 
-    # @staticmethod # get single student
-    # async def get_student(
-    #         db: AsyncSession,
-    #         student_id: int
-    # ):
-    #     stmt = select(Student).where(Student.id == student_id).options(
-    #         joinedload(Student.user)  # Eager load user
-    #     )
+    @staticmethod  # get single student
+    async def get_student(
+            db: AsyncSession,
+            user_id: int
+    ):
+        stmt = select(Student).where(Student.user_id == user_id).options(
+            joinedload(Student.user)  # Eager load user
+        )
 
-    #     student = await db.scalar(stmt)
+        student = await db.scalar(stmt)
 
-    #     if not student:
-    #         raise HTTPException(
-    #             status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
 
-    #     return student
+        return student
 
     @staticmethod  # update student by admin
     async def update_student_by_admin(

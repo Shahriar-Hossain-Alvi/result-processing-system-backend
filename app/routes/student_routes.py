@@ -5,7 +5,7 @@ from app.core.exceptions import DomainIntegrityError
 from app.services.student_service import StudentService
 from app.db.db import get_db_session
 from app.permissions import ensure_roles
-from app.schemas.student_schema import StudentCreateSchema, StudentUpdateByAdminSchema, StudentResponseSchemaForMarkInputSearch
+from app.schemas.student_schema import StudentCreateSchema, StudentProfileResponseSchemaNested, StudentUpdateByAdminSchema, StudentResponseSchemaForMarkInputSearch
 from app.schemas.user_schema import UserOutSchema
 
 router = APIRouter(
@@ -105,21 +105,25 @@ async def get_all_students_with_minimal_data(
 #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-# get single student
-# @router.get("/{id}", response_model=StudentResponseSchemaNested)
-# async def get_single_student(
-#     id: int,
-#     db: AsyncSession = Depends(get_db_session),
-#     current_user: UserOutSchema = Depends(get_current_user),
-# ):
-#     try:
-#         return await StudentService.get_student(db, id)
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         logger.error(f"Unexpected Error: {e}")
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+# get single student(profile page data)
+@router.get("/{user_id}", response_model=StudentProfileResponseSchemaNested)
+async def get_single_student(
+    user_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["student"])),
+):
+    if authorized_user.id != user_id:
+        raise HTTPException(
+            status_code=400, detail="You are not authorized to view this record.")
+    try:
+        return await StudentService.get_student(db, user_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected Error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 # update a student (self)
